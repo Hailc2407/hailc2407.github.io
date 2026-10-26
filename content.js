@@ -17,7 +17,10 @@ window.SITE = {
      can show one again by deleting it from this list). Section ids:
      about, prospects, news, setbacks, education, research, interests,
      experience, honors, skills, contact */
-  hiddenSections: ["experience", "honors", "skills"],
+  hiddenSections: ["honors", "skills"],
+
+  // Optional custom headings for sections, by id
+  sectionTitles: { experience: "Research Experience" },
 
   /* ---------- Left sidebar ---------- */
   profile: {
@@ -311,6 +314,7 @@ window.SITE = {
     },
     {
       group: "Leadership &amp; Service",
+      hidden: true, // not shown on the site; delete this line to show it again
       items: [
         {
           when: "Nov 2025",

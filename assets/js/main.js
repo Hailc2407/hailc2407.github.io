@@ -195,10 +195,12 @@
     },
 
     experience() {
-      if (!has(S.experience)) return "";
-      return list(S.experience, (g) => `
+      const groups = (S.experience || []).filter((g) => !g.hidden);
+      if (!groups.length) return "";
+      // a lone group needs no sub-heading
+      return list(groups, (g) => `
         <div class="group reveal">
-          <h3 class="group-title">${g.group}</h3>
+          ${groups.length > 1 ? `<h3 class="group-title">${g.group}</h3>` : ""}
           <ul class="entries">${list(g.items, entry)}</ul>
         </div>`);
     },
@@ -311,7 +313,7 @@
       out.push(`
         <section class="section" id="${sec.id}" aria-labelledby="${sec.id}-title">
           <header class="section-head reveal">
-            <h2 class="section-title" id="${sec.id}-title">${sec.title}</h2>
+            <h2 class="section-title" id="${sec.id}-title">${(S.sectionTitles && S.sectionTitles[sec.id]) || sec.title}</h2>
             <span class="section-rule" aria-hidden="true"></span>
             <span class="section-num"><b>${pad2(i + 1)}</b> / ${pad2(visible.length)}</span>
           </header>
