@@ -13,6 +13,12 @@ window.SITE = {
     lastUpdated: "October 2026",
   },
 
+  /* Sections listed here are hidden (their content below is kept, so you
+     can show one again by deleting it from this list). Section ids:
+     about, prospects, news, setbacks, education, research, interests,
+     experience, honors, skills, contact */
+  hiddenSections: ["experience", "honors", "skills"],
+
   /* ---------- Left sidebar ---------- */
   profile: {
     name: "Le Canh Hai",

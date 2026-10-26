@@ -301,7 +301,9 @@
   function renderSections() {
     const out = [];
     const rendered = new Set();
+    const hidden = new Set(S.hiddenSections || []);
     const visible = SECTIONS
+      .filter((sec) => !hidden.has(sec.id))
       .map((sec) => ({ sec, body: RENDER[sec.id] ? RENDER[sec.id]() : "" }))
       .filter((s) => s.body);
     visible.forEach(({ sec, body }, i) => {

@@ -32,6 +32,7 @@ Sau đó mở http://localhost:8000.
 | Thêm bài báo / dự án | Thêm một mục vào `research.items`. Thêm `links: [{ text: "Paper", url: "https://..." }]` để có nút link |
 | Thêm Google Scholar, ORCID, GitHub, LinkedIn | Dán URL vào `profile.links` |
 | Ghi các lần trượt/từ chối (Setbacks) | Thêm vào `setbacks`. Để trống thì mục tự ẩn |
+| Ẩn hoặc hiện lại một mục | Thêm hoặc xoá tên mục trong `hiddenSections` (đang ẩn: experience, honors, skills) |
 | Đổi chữ trên 3 thẻ ở đầu trang | `hero.loop` |
 | Đổi dải phương trình chạy ngang | `equations` và `motto` |
 
