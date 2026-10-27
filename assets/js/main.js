@@ -538,7 +538,7 @@
 
   /* ---------- CV viewer ----------
      The PDF is drawn on the page with PDF.js (loaded on first use), so the CV
-     always opens in place and is never handed to the browser as a download. */
+     opens in place; the viewer's bar has a button to download the file. */
   const PDFJS_SRC = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
   const PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   let pdfjsReady = null;
@@ -572,7 +572,10 @@
     dialog.innerHTML = `
       <div class="cv-bar">
         <span class="cv-title">${S.profile.name} · CV</span>
-        <button class="cv-close" type="button" aria-label="Close CV">${icon("close")}</button>
+        <div class="cv-actions">
+          <a class="cv-download" href="${url}" download aria-label="Download CV" title="Download CV">${icon("download", 16)}<span>Download</span></a>
+          <button class="cv-close" type="button" aria-label="Close CV">${icon("close")}</button>
+        </div>
       </div>
       <div class="cv-pages"><p class="cv-status">Loading CV…</p></div>`;
     document.body.appendChild(dialog);
