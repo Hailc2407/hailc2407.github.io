@@ -929,6 +929,20 @@ mark { background: none; color: var(--gold); font-weight: 600; }
   cursor: pointer;
 }
 .cv-close:hover { background: var(--card-coral); border-color: transparent; color: var(--ink); }
+.cv-actions { display: flex; align-items: center; gap: 8px; }
+.cv-download {
+  height: 38px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px; font-weight: 600;
+  text-decoration: none;
+}
+.cv-download:hover { background: var(--card-coral); border-color: transparent; color: var(--ink); }
+@media (max-width: 480px) { .cv-download { width: 38px; padding: 0; justify-content: center; } .cv-download span { display: none; } }
 .cv-pages {
   flex: 1;
   min-height: 0;

@@ -11,7 +11,7 @@ assets/css/style.css  colours, fonts, layout
 assets/js/main.js     rendering and interactions
 assets/js/diagrams.js animated research diagrams
 assets/img/           photo and favicon
-assets/files/         CV (opened in the on-page viewer)
+assets/files/         CV (opened in the on-page viewer, downloadable from it)
 ```
 
 ## Hướng dẫn cập nhật
@@ -38,7 +38,7 @@ Sau đó mở http://localhost:8000.
 
 Định dạng trong chuỗi: `<b>đậm</b>`, `<mark>tô tím</mark>`, `<span class='hl'>tô xanh</span>`, `<a href='https://...'>link</a>`.
 
-**Đổi CV:** thay file `assets/files/CV_Le_Canh_Hai.pdf`, giữ nguyên tên. Nút *View CV* mở CV ngay trên trang (dùng PDF.js) và không tải file xuống.
+**Đổi CV:** thay file `assets/files/CV_Le_Canh_Hai.pdf`, giữ nguyên tên. Nút *View CV* mở CV ngay trên trang (dùng PDF.js); trong khung xem có nút *Download* để tải file.
 
 **Đổi ảnh:** thay `assets/img/avatar.jpg` bằng một ảnh vuông.
 

@@ -34,8 +34,8 @@ window.SITE = {
     ],
     location: "Hanoi, Vietnam",
     timezone: "Asia/Ho_Chi_Minh",
-    email: "hai.lc.workspace@gmail.com",
-    cv: "assets/files/CV_Le_Canh_Hai.pdf", // opened in the on-page viewer, never downloaded
+    email: "hai.lc.math@gmail.com",
+    cv: "assets/files/CV_Le_Canh_Hai.pdf", // opened in the on-page viewer, which also offers a download
     // words that circle the photo, and a one-line status under the name
     ring: "Optimization · Dynamical systems · Mathematical modelling · ",
     status: "Open to graduate study &amp; RA roles",
@@ -88,7 +88,7 @@ window.SITE = {
     paragraphs: [
       "I am preparing to pursue a <b>research-oriented Master's degree in mathematics</b>, followed by doctoral study in applied mathematics. I want a broader theoretical foundation in optimization, analysis and numerical methods, while continuing to work on nonlinear dynamical systems.",
       "Alongside research, I want to keep tutoring and mentoring students with limited access to education. The Chap Canh Bach Khoa community supported my own studies, and giving back has become a personal commitment.",
-      "I am open to research assistant positions and collaborations in optimization and dynamical systems. Feel free to reach me at <a href='mailto:hai.lc.workspace@gmail.com'>hai.lc.workspace@gmail.com</a>.",
+      "I am open to research assistant positions and collaborations in optimization and dynamical systems. Feel free to reach me at <a href='mailto:hai.lc.math@gmail.com'>hai.lc.math@gmail.com</a>.",
     ],
   },
 
