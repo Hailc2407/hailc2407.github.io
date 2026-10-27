@@ -92,17 +92,20 @@ window.SITE = {
     ],
   },
 
-  /* Scrolling ribbon between Prospects and News: equations from my own work */
-  equations: [
-    "N′ = rN(1 − N/K) − qNE/(N + D)",
-    "E′ = E[q(aN + b)/(N + D) − c]",
-    "c<sub>H</sub> = q[a(K − D) + 2b]/(K + D)",
-    "Y* ≤ rK/4",
-    "w<sub>k</sub> = (1 − α<sub>k</sub>)x<sub>k</sub> + θ<sub>k</sub>(x<sub>k</sub> − x<sub>k−1</sub>)",
-    "⟨B<sub>0</sub>x*, x − x*⟩ ≥ 0",
-    "‖u*‖ = min<sub>u∈Γ</sub> ‖u‖",
+  /* Scrolling ribbon between Prospects and News: two rows of quotes that
+     drift in opposite directions. Large row first, small row second. */
+  quotes: [
+    { text: "Nothing at all takes place in the universe in which some rule of maximum or minimum does not appear.", by: "Leonhard Euler" },
+    { text: "The great watershed in optimization isn't between linearity and nonlinearity, but convexity and nonconvexity.", by: "R. Tyrrell Rockafellar" },
+    { text: "All models are wrong, but some are useful.", by: "George Box" },
+    { text: "Nature is thrifty in all its actions.", by: "Pierre-Louis Maupertuis" },
   ],
-  motto: "Prove it on paper · then watch it converge ·",
+  quotesSmall: [
+    { text: "The purpose of computing is insight, not numbers.", by: "Richard Hamming" },
+    { text: "Nature always acts by the shortest paths.", by: "Pierre de Fermat" },
+    { text: "We must know. We will know.", by: "David Hilbert" },
+    { text: "Premature optimization is the root of all evil.", by: "Donald Knuth" },
+  ],
 
   /* ---------- 03 News ---------- */
   // key: true colours the date gold. "initial" items show before "Show more".

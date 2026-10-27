@@ -291,14 +291,17 @@
   }
 
   function renderRibbon() {
-    const eqs = S.equations;
-    if (!has(eqs)) return "";
-    const unit = eqs.map((e) => `<span class="eq">${e}</span><span class="sep">◦</span>`).join("");
-    const motto = S.motto
-      ? `<div class="ribbon-row motto">${Array.from({ length: 12 }, () => `<span>${S.motto}</span>`).join("")}</div>`
-      : "";
-    return `<div class="ribbon" aria-hidden="true"><div class="ribbon-row">${unit}${unit}</div>${motto}</div>`;
+    // each row holds its quotes twice so the marquee loops seamlessly;
+    // only the first copy is read out by screen readers
+    const row = (quotes, cls) => {
+      if (!has(quotes)) return "";
+      const unit = quotes.map((q) => `<q>${q.text}</q><cite>${q.by}</cite><span class="sep">◦</span>`).join("");
+      return `<div class="ribbon-row ${cls}"><span class="ribbon-unit">${unit}</span><span class="ribbon-unit" aria-hidden="true">${unit}</span></div>`;
+    };
+    const rows = row(S.quotes, "major") + row(S.quotesSmall, "minor");
+    return rows ? `<div class="ribbon" aria-label="Quotes on optimization">${rows}</div>` : "";
   }
+
 
   function renderSections() {
     const out = [];
@@ -319,7 +322,7 @@
           </header>
           ${body}
         </section>`);
-      // the equation ribbon sits after the About / Prospects block
+      // the quote ribbon sits after the About / Prospects block
       if (sec.id === "prospects" || (sec.id === "about" && !has(S.prospects && S.prospects.paragraphs))) out.push(renderRibbon());
     });
     $("#sections").innerHTML = out.join("");
