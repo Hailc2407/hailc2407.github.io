@@ -92,17 +92,20 @@ window.SITE = {
     ],
   },
 
-  /* Scrolling ribbon between Prospects and News: equations from my own work */
-  equations: [
-    "N′ = rN(1 − N/K) − qNE/(N + D)",
-    "E′ = E[q(aN + b)/(N + D) − c]",
-    "c<sub>H</sub> = q[a(K − D) + 2b]/(K + D)",
-    "Y* ≤ rK/4",
-    "w<sub>k</sub> = (1 − α<sub>k</sub>)x<sub>k</sub> + θ<sub>k</sub>(x<sub>k</sub> − x<sub>k−1</sub>)",
-    "⟨B<sub>0</sub>x*, x − x*⟩ ≥ 0",
-    "‖u*‖ = min<sub>u∈Γ</sub> ‖u‖",
+  /* Scrolling ribbon between Prospects and News: two rows of quotes that
+     drift in opposite directions. Large row first, small row second. */
+  quotes: [
+    { text: "Nothing at all takes place in the universe in which some rule of maximum or minimum does not appear.", by: "Leonhard Euler" },
+    { text: "The great watershed in optimization isn't between linearity and nonlinearity, but convexity and nonconvexity.", by: "R. Tyrrell Rockafellar" },
+    { text: "All models are wrong, but some are useful.", by: "George Box" },
+    { text: "Nature is thrifty in all its actions.", by: "Pierre-Louis Maupertuis" },
   ],
-  motto: "Prove it on paper · then watch it converge ·",
+  quotesSmall: [
+    { text: "The purpose of computing is insight, not numbers.", by: "Richard Hamming" },
+    { text: "Nature always acts by the shortest paths.", by: "Pierre de Fermat" },
+    { text: "We must know. We will know.", by: "David Hilbert" },
+    { text: "Premature optimization is the root of all evil.", by: "Donald Knuth" },
+  ],
 
   /* ---------- 03 News ---------- */
   // key: true colours the date gold. "initial" items show before "Show more".
@@ -115,7 +118,6 @@ window.SITE = {
       { date: "May 2026", key: true, text: "Presented my paper on split variational inequalities, as first author, at the <b>43rd Student Research Conference</b>, HUST." },
       { date: "Nov 2025", text: "Represented HUST at the <b>“Red Journey”</b> Vietnam–China Youth Cultural &amp; Academic Exchange in Wuhan and Chongqing." },
       { date: "Jul 2025", key: true, text: "Took part in the <b>KAIST International Summer School for Advanced Undergraduate Students</b> in Daejeon as a fully funded participant." },
-      { date: "2025", text: "Named a <b>University Outstanding Student</b> of HUST for the 2024–2025 academic year." },
       { date: "Feb 2025", text: "Started as a Research Assistant at HUST with Assoc. Prof. Nguyen Thi Thu Thuy, working on algorithms for variational inequalities." },
       { date: "2024", text: "Took over coordination of the Chap Canh Bach Khoa tutoring programme for students in Mu Cang Chai." },
       { date: "2023", text: "Started teaching free mathematics lessons to secondary-school students in Mu Cang Chai." },
@@ -146,20 +148,6 @@ window.SITE = {
         detail: "GPA <mark>3.89/4.00</mark> · Excellent · ranked <b>1st of 166</b> · <span class='hl'>Graduation Valedictorian</span>",
         place: "Faculty of Mathematics and Informatics<br>Hanoi University of Science and Technology (HUST)",
         chips: ["Optimization Methods", "Partial Differential Equations", "Probability &amp; Statistics", "Numerical Analysis", "Functional Analysis", "Complex Analysis"],
-      },
-      {
-        when: "Jul 2026",
-        kind: "Summer school",
-        title: "VIASM Summer School on Optimization and Decision Theory",
-        detail: "Lectures by Prof. Patrick L. Combettes (NC State) on Krasnosel'skii–Mann iterations, from the fundamentals to stochastic iterations and convergence rates.",
-        place: "Vietnam Institute for Advanced Study in Mathematics (<a href='https://viasm.edu.vn' target='_blank' rel='noopener'>VIASM</a>) · Quy Nhon, Vietnam",
-      },
-      {
-        when: "Jul 2025",
-        kind: "Summer school",
-        title: "KAIST International Summer School for Advanced Undergraduate Students",
-        detail: "<b>Fully funded participant.</b> Advanced courses in PDEs, Stochastic Analysis, Financial Mathematics, Algebra and Statistics.",
-        place: "<a href='https://www.kaist.ac.kr' target='_blank' rel='noopener'>KAIST</a> · Daejeon, South Korea",
       },
     ],
   },

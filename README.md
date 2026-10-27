@@ -34,7 +34,7 @@ Sau đó mở http://localhost:8000.
 | Ghi các lần trượt/từ chối (Setbacks) | Thêm vào `setbacks`. Để trống thì mục tự ẩn |
 | Ẩn hoặc hiện lại một mục | Thêm hoặc xoá tên mục trong `hiddenSections` (đang ẩn: honors, skills). Nhóm Leadership & Service trong `experience` đang ẩn bằng `hidden: true` |
 | Đổi chữ trên 3 thẻ ở đầu trang | `hero.loop` |
-| Đổi dải phương trình chạy ngang | `equations` và `motto` |
+| Đổi dải trích dẫn chạy ngang | `quotes` (hàng lớn) và `quotesSmall` (hàng nhỏ) |
 
 Định dạng trong chuỗi: `<b>đậm</b>`, `<mark>tô tím</mark>`, `<span class='hl'>tô xanh</span>`, `<a href='https://...'>link</a>`.
 

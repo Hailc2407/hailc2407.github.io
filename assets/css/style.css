@@ -467,7 +467,7 @@ mark { background: none; color: var(--gold); font-weight: 600; }
 .metric-value small { margin-left: 2px; color: var(--muted); font-size: 0.42em; font-weight: 500; letter-spacing: 0; }
 .metric-label { margin-top: 10px; color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
 
-/* ---------- Equation ribbon ---------- */
+/* ---------- Quote ribbon ---------- */
 .ribbon {
   margin: 64px calc(-1 * var(--gutter)) 0;
   padding: 24px 0 20px;
@@ -477,12 +477,18 @@ mark { background: none; color: var(--gold); font-weight: 600; }
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
 }
-.ribbon-row { display: flex; align-items: baseline; width: max-content; animation: marquee 80s linear infinite; }
-.ribbon-row .eq { padding: 0 0.85em; color: var(--text-2); font-family: var(--serif); font-size: clamp(20px, 2.5vw, 28px); font-style: italic; white-space: nowrap; }
-.ribbon-row .eq sub { font-size: 0.62em; }
-.ribbon-row .sep { color: var(--coral); font-size: 15px; }
-.ribbon-row.motto { margin-top: 14px; animation-direction: reverse; animation-duration: 110s; }
-.ribbon-row.motto span { padding-right: 1.8em; color: var(--faint); font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.22em; text-transform: uppercase; white-space: nowrap; }
+.ribbon-row { display: flex; width: max-content; animation: marquee 140s linear infinite; }
+.ribbon-unit { display: flex; align-items: baseline; white-space: nowrap; }
+.ribbon-row q { quotes: "“" "”"; }
+.ribbon-row cite { margin-left: 0.9em; font-style: normal; }
+.ribbon-row cite::before { content: "— "; }
+.ribbon-row .sep { padding: 0 1.4em; color: var(--coral); font-size: 15px; }
+.ribbon-row.major q { color: var(--text-2); font-family: var(--serif); font-size: clamp(19px, 2.2vw, 25px); font-style: italic; }
+.ribbon-row.major cite { color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; }
+.ribbon-row.minor { margin-top: 14px; animation-direction: reverse; animation-duration: 120s; }
+.ribbon-row.minor q, .ribbon-row.minor cite { color: var(--faint); font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; }
+.ribbon-row.minor cite { opacity: 0.75; }
+.ribbon-row.minor .sep { font-size: 11px; }
 .ribbon + .section { border-top: 1px solid var(--border-soft); }
 
 /* ---------- News ---------- */
