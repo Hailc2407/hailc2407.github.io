@@ -214,7 +214,10 @@
         toast("Không mở được micro. Hãy cho phép micro trong trình duyệt.");
       }
     }
-    return h("span", { class: "recorder" }, go, out);
+    const el = h("span", { class: "recorder" }, go, out);
+    el.begin = () => { if (!rec) start(); };
+    el.end = () => { if (rec) rec.stop(); };
+    return el;
   }
 
   /* ---------- Countdown timer ---------- */
@@ -337,7 +340,7 @@
   /* A photo with statements (A)–(D). Modes for statement text: show | after | hidden. */
   function photoQ(q, pl, opts = {}) {
     const mode = q.text || opts.text || "after";
-    const el = h("div", { class: "pq" });
+    const el = h("div", { class: "pq" + (q.img ? "" : " no-img") });
     const choices = h("div", { class: "pq-opts" });
     const analysis = h("div", { class: "pq-why", hidden: true });
     let answered = false;
@@ -475,24 +478,37 @@
     return h("div", { class: "mcq" }, b.track ? h("div", { class: "sticky-player" }, pl.el) : null, qs, sc.el);
   };
 
-  /* Fill the gaps (free text, or pick from a word bank). */
+  /* Fill the gaps: free text, a shared word bank, or choices per item (it.opts).
+     An item may have several ___ blanks; then it.a is a list of answer lists.
+     b.exact compares case and punctuation too (for capitalisation tasks). */
+  const exactNorm = (s) => String(s).replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
   B.gaps = (b) => {
     const sc = scoreLine();
     const fields = [];
+    const same = (a, v) => (b.exact ? exactNorm(a) === exactNorm(v) : norm(a) === norm(v));
     const groups = b.groups.map((g) => h("div", { class: "gap-group" + (g.img ? "" : " no-img") },
       g.img ? h("div", { class: "gap-img" }, img(g.img)) : null,
       h("ol", { class: "gap-list", start: g.start || 1 }, g.items.map((it) => {
         const parts = it.q.split("___");
-        const input = b.bank
-          ? h("select", { class: "sel" }, h("option", { value: "" }, "…"), b.bank.map((w) => h("option", { value: w }, w)))
-          : h("input", { class: "gap-in", type: "text", autocomplete: "off", spellcheck: "false", size: it.size || 10, "aria-label": "answer" });
-        fields.push({ input, it });
-        return h("li", {}, h("span", { html: parts[0] }), input, h("span", { html: parts[1] || "" }), it.hint ? h("span", { class: "hint" }, " " + it.hint) : null);
+        const n = parts.length - 1;
+        const answers = n > 1 ? it.a : [it.a];
+        const li = h("li", {}, h("span", { html: parts[0] }));
+        for (let k = 0; k < n; k++) {
+          const choices = it.opts ? (n > 1 ? it.opts[k] : it.opts) : b.bank;
+          const input = choices
+            ? h("select", { class: "sel" }, h("option", { value: "" }, "…"), choices.map((w) => h("option", { value: w }, w)))
+            : h("input", { class: "gap-in" + (it.wide ? " wide" : ""), type: "text", autocomplete: "off", spellcheck: "false", size: it.size || 10, "aria-label": "answer" });
+          fields.push({ input, a: answers[k] });
+          li.append(input, h("span", { html: parts[k + 1] || "" }));
+        }
+        if (it.hint) li.append(h("span", { class: "hint" }, " " + it.hint));
+        li.dataset.ans = answers.map((a) => a.join(" / ")).join(" · ");
+        return li;
       }))));
     const check = btn("Kiểm tra", () => {
       let ok = 0;
-      fields.forEach(({ input, it }) => {
-        const good = it.a.some((a) => norm(a) === norm(input.value));
+      fields.forEach(({ input, a }) => {
+        const good = a.some((x) => same(x, input.value));
         if (good) ok++;
         input.classList.toggle("ok", good);
         input.classList.toggle("bad", !good);
@@ -500,13 +516,123 @@
       sc.set(ok, fields.length);
     }, "btn");
     const show = btn("Xem đáp án", () => {
-      fields.forEach(({ input, it }) => {
-        const li = input.closest("li");
-        if (!$(".ans", li)) li.append(h("span", { class: "ans" }, " ✓ " + it.a.join(" / ")));
+      $$(".gap-list > li", wrap).forEach((li) => {
+        if (!$(".ans", li)) li.append(h("span", { class: "ans" }, " ✓ " + li.dataset.ans));
       });
     }, "btn ghost");
-    return h("div", { class: "gaps" }, b.bank ? h("div", { class: "bank" }, b.bank.map((w) => h("span", { class: "chip static" }, w))) : null,
+    const wrap = h("div", { class: "gaps" }, b.bank ? h("div", { class: "bank" }, b.bank.map((w) => h("span", { class: "chip static" }, w))) : null,
       groups, h("div", { class: "actions" }, check, show, sc.el));
+    return wrap;
+  };
+
+  /* Put items in order: click them in the order you think is right. */
+  B.order = (b) => {
+    const pl = b.track ? player(b.track) : null;
+    const sc = scoreLine();
+    let picked = [];
+    const rows = b.items.map((t, i) => {
+      const num = h("span", { class: "ord-n" }, "");
+      const row = h("button", { type: "button", class: "ord", onclick: () => {
+        if (wrap.dataset.done) return;
+        const at = picked.indexOf(i);
+        if (at >= 0) picked.splice(at, 1); else picked.push(i);
+        paint();
+      } }, num, h("span", { html: t }));
+      return { row, num };
+    });
+    function paint() {
+      rows.forEach((r, i) => {
+        const at = picked.indexOf(i);
+        r.num.textContent = at >= 0 ? at + 1 : "";
+        r.row.classList.toggle("on", at >= 0);
+      });
+    }
+    const check = btn("Kiểm tra", () => {
+      if (picked.length < b.items.length) return toast("Hãy đánh số hết các dòng trước");
+      let ok = 0;
+      rows.forEach((r, i) => {
+        const good = picked.indexOf(i) + 1 === b.answer[i];
+        if (good) ok++;
+        r.row.classList.toggle("ok", good);
+        r.row.classList.toggle("bad", !good);
+        if (!good) r.num.textContent = picked.indexOf(i) + 1 + "→" + b.answer[i];
+      });
+      wrap.dataset.done = 1;
+      sc.set(ok, rows.length);
+    }, "btn");
+    const reset = btn("Làm lại", () => {
+      picked = [];
+      delete wrap.dataset.done;
+      rows.forEach((r) => r.row.classList.remove("ok", "bad"));
+      paint();
+      sc.el.hidden = true;
+    }, "btn ghost");
+    const wrap = h("div", { class: "order" }, pl ? h("div", { class: "sticky-player" }, pl.el) : null,
+      b.img ? h("div", { class: "order-img" }, img(b.img)) : null,
+      h("p", { class: "muted small" }, "Bấm lần lượt theo thứ tự đúng (bấm lại để bỏ chọn)."),
+      h("div", { class: "ord-list" }, rows.map((r) => r.row)), h("div", { class: "actions" }, check, reset, sc.el));
+    return wrap;
+  };
+
+  /* Recording of the book + its script, hidden until asked. */
+  B.transcript = (b) => {
+    const pl = player(b.track);
+    const box = h("div", { class: "script", hidden: !b.open, html: b.html });
+    return h("div", { class: "transcript" }, h("div", { class: "row" }, pl.el),
+      btn(b.open ? "Ẩn lời" : "📄 Hiện lời (script)", (e) => {
+        box.hidden = !box.hidden;
+        e.currentTarget.textContent = box.hidden ? "📄 Hiện lời (script)" : "Ẩn lời";
+      }, "btn small ghost"), box);
+  };
+
+  /* Write one sentence about a photo with the two given words (TOEIC Writing Q1-5). */
+  const IRREG = { sit: ["sat"], eat: ["ate", "eaten"], hang: ["hung"], hold: ["held"], take: ["took", "taken"], buy: ["bought"],
+    wear: ["wore", "worn"], blow: ["blew", "blown"], stand: ["stood"], read: ["read"], put: ["put"], cut: ["cut"],
+    write: ["wrote", "written"], make: ["made"], go: ["went", "gone"], run: ["ran"], fit: ["fit", "fitted"], kick: [], bring: ["brought"] };
+  function forms(w) {
+    w = w.toLowerCase();
+    const f = new Set([w, w + "s", w + "es", w + "ed", w + "d", w + "ing", w + "er", w + "ly"]);
+    if (w.endsWith("e")) { f.add(w.slice(0, -1) + "ing"); f.add(w + "d"); }
+    if (w.endsWith("y")) { f.add(w.slice(0, -1) + "ies"); f.add(w.slice(0, -1) + "ied"); f.add(w.slice(0, -1) + "ier"); }
+    if (/[^aeiou][aeiou][bdgklmnprt]$/.test(w)) { const c = w.slice(-1); f.add(w + c + "ing"); f.add(w + c + "ed"); f.add(w + c + "er"); }
+    if (w.endsWith("f")) f.add(w.slice(0, -1) + "ves");
+    (IRREG[w] || []).forEach((x) => f.add(x));
+    return f;
+  }
+  function uses(sentence, word) {
+    const text = " " + norm(sentence).replace(/[/-]/g, " ") + " ";
+    if (word.includes(" ")) return text.includes(" " + norm(word) + " ");
+    const fs = forms(word);
+    return text.split(" ").some((t) => fs.has(t));
+  }
+  B.write = (b) => {
+    const items = b.items.map((it, i) => {
+      const box = h("textarea", { class: "write-in", rows: 2, spellcheck: "false", placeholder: "Write one sentence…" });
+      const res = h("ul", { class: "write-res" });
+      const sample = h("div", { class: "write-sample", hidden: true }, h("b", {}, "Sample: "), (it.sample || []).map((x) => h("div", { html: x })));
+      const check = () => {
+        const v = box.value.trim();
+        res.textContent = "";
+        if (!v) return;
+        const rows = it.words.map((w) => [uses(v, w), `uses “${w}”`]);
+        rows.push([/^[A-Z]/.test(v), "starts with a capital letter"]);
+        rows.push([/[.!]$/.test(v), "ends with a period (.)"]);
+        rows.push([(v.match(/[.!?](\s|$)/g) || []).length <= 1, "only one sentence"]);
+        rows.forEach(([ok, t]) => res.append(h("li", { class: ok ? "yes" : "no" }, (ok ? "✓ " : "✗ ") + t)));
+        res.append(h("li", { class: "self" }, "? Tự kiểm tra: đúng ngữ pháp và đúng với ảnh?"));
+      };
+      box.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); check(); } });
+      return h("div", { class: "write-q" + (it.img ? "" : " no-img") },
+        it.img ? h("div", { class: "write-img" }, img(it.img)) : null,
+        h("div", { class: "write-side" },
+          h("div", { class: "write-head" }, b.items.length > 1 ? h("b", {}, (it.n || i + 1) + ". ") : null,
+            h("span", { class: "pair" }, it.words.join(" / "))),
+          it.hint ? h("p", { class: "muted small", html: it.hint }) : null,
+          box, h("div", { class: "actions" }, btn("Kiểm tra", check, "btn small"),
+            it.sample ? btn("Câu mẫu", () => { sample.hidden = !sample.hidden; }, "btn small ghost") : null),
+          res, sample));
+    });
+    return h("div", { class: "write" }, b.seconds ? h("div", { class: "timer-row" }, timer(b.seconds), h("span", { class: "muted small" }, "thời gian làm bài như thi thật")) : null, items);
   };
 
   /* Hear one statement, pick the word you heard. */
@@ -592,13 +718,46 @@
           recorder()))));
   };
 
-  /* A speaking task with a countdown and an optional recorder. */
-  B.speak = (b) => h("div", { class: "speak" },
-    b.prompt ? h("div", { class: "speak-prompt", html: b.prompt }) : null,
-    b.img ? h("div", { class: "speak-img" }, img(b.img)) : null,
-    b.phrases ? h("div", { class: "phrases" }, h("span", { class: "muted small" }, "Useful language:"),
-      b.phrases.map((p) => h("span", { class: "chip static", html: p }))) : null,
-    h("div", { class: "speak-tools" }, b.seconds ? timer(b.seconds) : null, b.record ? recorder() : null));
+  /* A speaking task with a countdown and an optional recorder.
+     With b.prep: a test-style run, preparation time then response time (recording starts by itself). */
+  function examRun(prep, speak, rec) {
+    let id = 0, left = 0, phase = "";
+    const fmt = (t) => Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0");
+    const label = h("span", { class: "x-phase" }, "Preparation " + fmt(prep) + " · Response " + fmt(speak));
+    const face = h("span", { class: "t-face" }, "");
+    const stop = () => { clearInterval(id); id = 0; };
+    function run(name, secs, next) {
+      phase = name; left = secs;
+      label.textContent = name === "prep" ? "Chuẩn bị (Preparation)" : "Nói (Response)";
+      el.className = "exam " + name;
+      face.textContent = fmt(left);
+      id = setInterval(() => {
+        left--;
+        face.textContent = fmt(Math.max(left, 0));
+        if (left <= 0) { stop(); beep(); next(); }
+      }, 1000);
+    }
+    const go = btn("▶ Bắt đầu như thi thật", () => {
+      stop();
+      run("prep", prep, () => {
+        if (rec) rec.begin();
+        run("speak", speak, () => { if (rec) rec.end(); label.textContent = "Hết giờ: nghe lại bản ghi của bạn"; el.className = "exam done"; face.textContent = ""; });
+      });
+    }, "btn small");
+    const reset = btn("↺", () => { stop(); if (rec) rec.end(); el.className = "exam"; face.textContent = ""; label.textContent = "Preparation " + fmt(prep) + " · Response " + fmt(speak); }, "btn small ghost", "Đặt lại");
+    const el = h("span", { class: "exam" }, "⏱ ", label, face, go, reset);
+    return el;
+  }
+  B.speak = (b) => {
+    const rec = b.record ? recorder() : null;
+    return h("div", { class: "speak" },
+      b.prompt ? h("div", { class: "speak-prompt", html: b.prompt }) : null,
+      b.img ? h("div", { class: "speak-img" }, img(b.img)) : null,
+      b.phrases ? h("div", { class: "phrases" }, h("span", { class: "muted small" }, "Useful language:"),
+        b.phrases.map((p) => h("span", { class: "chip static", html: p }))) : null,
+      h("div", { class: "speak-tools" }, b.prep ? examRun(b.prep, b.seconds, rec) : b.seconds ? timer(b.seconds) : null, rec),
+      b.sample ? h("details", { class: "sample" }, h("summary", {}, "Sample response"), h("div", { html: b.sample })) : null);
+  };
 
   /* Describe & guess: one partner sees a secret photo and describes it. */
   B.guess = (b) => {
@@ -732,9 +891,27 @@
     app.textContent = "";
     app.append(h("div", { class: "home" },
       h("h1", {}, "English Room"),
-      h("p", { class: "lead" }, "TOEIC Listening & Reading · học chung 2 người · 90 phút/buổi"),
+      h("p", { class: "lead" }, "TOEIC Listening & Reading · Speaking & Writing · học chung 2 người"),
       h("div", { class: "lessons" }, idx.lessons.map((l) => h("a", { class: "lesson-card", href: "#/" + l.id },
-        h("span", { class: "kicker" }, "Lesson " + l.no), h("strong", {}, l.title), l.subtitle ? h("span", { class: "muted small" }, l.subtitle) : null)))));
+        h("span", { class: "kicker" }, "Lesson " + l.no), h("strong", {}, l.title), l.subtitle ? h("span", { class: "muted small" }, l.subtitle) : null)))),
+      V.has("curriculum.json") ? await curriculum() : null);
+  }
+
+  /* Which parts of the books each lesson has used, and what is planned next. */
+  async function curriculum() {
+    const c = await V.json("curriculum.json");
+    const tag = (r) => r.used ? h("span", { class: "cur-tag used" }, "Lesson " + r.used)
+      : r.plan ? h("span", { class: "cur-tag plan" }, "Dự kiến L" + r.plan) : h("span", { class: "cur-tag free" }, "chưa dùng");
+    return h("section", { class: "curriculum" },
+      h("h2", {}, "Lộ trình & nội dung đã dùng"),
+      c.note ? h("p", { class: "muted small", html: c.note }) : null,
+      c.books.map((bk) => h("div", { class: "block" },
+        h("h3", { class: "block-title" }, bk.title),
+        h("div", { class: "table-wrap" }, h("table", {},
+          h("thead", {}, h("tr", {}, ["Phần", "Trang sách", "Audio", "Trạng thái"].map((x) => h("th", {}, x)))),
+          h("tbody", {}, bk.units.map((u) => h("tr", {},
+            h("td", { html: u.name + (u.details ? "<br><span class='muted small'>" + u.details + "</span>" : "") }),
+            h("td", {}, u.pages || ""), h("td", {}, u.tracks || ""), h("td", {}, tag(u))))))))));
   }
 
   async function route() {
