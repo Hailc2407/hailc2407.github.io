@@ -12,6 +12,9 @@ assets/js/main.js     rendering and interactions
 assets/js/diagrams.js animated research diagrams
 assets/img/           photo and favicon
 assets/files/         CV (opened in the on-page viewer, downloadable from it)
+assets/js/gate.js     hidden entrance to the study pages (Ctrl + Shift + L)
+study/                English study pages; lessons, photos and audio are encrypted in study/vault/
+tools/vault.mjs       encrypts the study materials into study/vault/
 ```
 
 ## Hướng dẫn cập nhật
@@ -45,3 +48,13 @@ Sau đó mở http://localhost:8000.
 **Đổi màu:** sửa `--coral` (màu nhấn chính) và `--gold` (màu nhấn phụ) ở đầu `assets/css/style.css`.
 
 **Đưa thay đổi lên mạng:** `git add . && git commit -m "Update" && git push`. GitHub Pages tự cập nhật sau khoảng 1 phút.
+
+## Phòng học tiếng Anh (ẩn)
+
+Trên trang chủ bấm **Ctrl + Shift + L** (trên Mac là phím Control, không phải Command), nhập mật khẩu, trang sẽ chuyển tới `study/`. Bài học, ảnh và audio nằm trong `study/vault/` dưới dạng mã hoá AES-GCM, nên trên GitHub không đọc được nếu không có mật khẩu. Khoá giải mã chỉ được giữ trong tab đang mở: đóng tab hoặc bấm **Lock** là phải nhập lại.
+
+Nội dung gốc (script soạn bài, ảnh, audio) nằm trong repo private `toeic-materials`. Để thêm hoặc sửa bài, dựng lại thư mục nguồn rồi mã hoá lại bằng đúng mật khẩu cũ:
+
+```bash
+VAULT_PASSWORD=... node tools/vault.mjs <thư-mục-nguồn> study/vault
+```
