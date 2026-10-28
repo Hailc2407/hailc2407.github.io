@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>English Room</title>
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Noto+Sans:wght@400;500&display=swap">
+  <link rel="stylesheet" href="study.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="bar-inner">
+      <a class="brand" href="#/">English Room</a>
+      <nav class="bar-tools" aria-label="Tools">
+        <button class="tool" id="t-accent" type="button" title="Giọng phát âm từ mới">US</button>
+        <button class="tool" id="t-vi" type="button" title="Hiện/ẩn tất cả giải thích tiếng Việt">🇻🇳</button>
+        <button class="tool" id="t-theme" type="button" title="Sáng/tối">🌓</button>
+        <button class="tool" id="t-lock" type="button" title="Khoá và thoát">Lock</button>
+      </nav>
+    </div>
+  </header>
+  <main id="app" class="app" aria-live="polite"></main>
+  <script src="vault.js"></script>
+  <script src="study.js"></script>
+</body>
+</html>
