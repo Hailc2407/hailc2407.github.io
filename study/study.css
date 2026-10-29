@@ -411,3 +411,32 @@ th { background: var(--surface); font-weight: 600; }
 .doc-table { border-collapse: collapse; margin: 6px auto 10px; font-size: 15px; }
 .doc-table th, .doc-table td { border: 1px solid #c9c3b3; padding: 3px 10px; background: none; color: inherit; text-align: left; }
 .doc-table th { background: #efeadb; font-weight: 700; }
+
+/* Full practice test: booklet + answer sheet */
+.sheet-top { position: sticky; top: var(--bar-h); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 0; background: var(--bg); }
+.sheet-top .player { flex: 1 1 360px; }
+.sheet-body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; align-items: start; }
+.sheet.wide .sheet-body { grid-template-columns: 1fr; }
+.booklet { max-height: calc(100vh - var(--bar-h) - 90px); overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+.sheet.wide .booklet { max-height: none; }
+.bk-page { border-bottom: 6px solid var(--surface-2); }
+.bk-page .photo { border-radius: 0; }
+.answers-col { position: sticky; top: calc(var(--bar-h) + 60px); max-height: calc(100vh - var(--bar-h) - 90px); overflow: auto; padding-right: 4px; }
+.sheet.wide .answers-col { position: static; max-height: none; }
+.sheet.wide .answers { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0 18px; }
+.as-part { margin: 10px 0 4px; font-weight: 700; font-size: 13px; color: var(--muted); grid-column: 1 / -1; }
+.as-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 0; }
+.as-n { min-width: 38px; font-variant-numeric: tabular-nums; }
+.submitted .as-n { cursor: pointer; text-decoration: underline dotted; }
+.bub { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 700; cursor: pointer; }
+.bub.sel { background: var(--text); color: var(--bg); border-color: var(--text); }
+.bub.ok { background: var(--ok, #2e9e5b); color: #fff; border-color: transparent; }
+.bub.bad { background: var(--bad, #d1495b); color: #fff; border-color: transparent; }
+.as-row.as-bad .as-n { color: var(--bad, #d1495b); }
+.as-detail { flex-basis: 100%; margin: 4px 0 8px 38px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); font-size: 14px; }
+.as-detail .btn { margin: 4px 0; }
+.as-key { font-weight: 700; }
+.as-note p { margin: 4px 0; }
+.as-summary table, .scoreboard table { border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+.as-summary td, .scoreboard td { padding: 3px 10px; border-bottom: 1px solid var(--border); }
+.as-summary tr.total td, .scoreboard tr.total td { font-weight: 700; }

@@ -945,6 +945,85 @@
     return wrapper;
   };
 
+  /* A full paper test: the book pages (booklet) next to an answer sheet.
+     b.items: { n, a: "B", k: 3|4 options, part, seg?, note? }. After "Nộp bài": score per part,
+     an estimated scaled score from b.scale (index = number correct), and a review of each item. */
+  B.sheet = (b) => {
+    const pl = b.track ? player(b.track, { note: "Nghe 1 lần, không dừng" }) : null;
+    const picked = {};
+    const book = h("div", { class: "booklet" }, b.pages.map((p) => h("div", { class: "bk-page" }, img(p))));
+    let lastPart = null;
+    const rows = [];
+    const sheet = h("div", { class: "answers" });
+    b.items.forEach((it) => {
+      if (it.part !== lastPart) { sheet.append(h("div", { class: "as-part" }, it.part)); lastPart = it.part; }
+      const bubbles = LETTERS.slice(0, it.k || 4).map((L1) => h("button", { type: "button", class: "bub", onclick: () => {
+        if (wrap.classList.contains("submitted")) return;
+        picked[it.n] = L1;
+        bubbles.forEach((x) => x.classList.toggle("sel", x.textContent === L1));
+      } }, L1));
+      const detail = h("div", { class: "as-detail", hidden: true },
+        h("div", { class: "as-key" }, "Đáp án: " + it.a),
+        it.seg && pl && pl.ok ? btn("▶ Nghe lại", () => pl.clip(it.seg[0], it.seg[1]), "btn small") : null,
+        it.note ? h("div", { class: "as-note", html: it.note }) : null);
+      const row = h("div", { class: "as-row" }, h("b", { class: "as-n", onclick: () => { if (wrap.classList.contains("submitted")) detail.hidden = !detail.hidden; } }, it.n + "."), bubbles, detail);
+      rows.push({ it, row, bubbles, detail });
+      sheet.append(row);
+    });
+    const summary = h("div", { class: "as-summary", hidden: true });
+    const submit = btn("Nộp bài", () => {
+      const left = b.items.filter((it) => !picked[it.n]).length;
+      if (left && !confirm(`Còn ${left} câu chưa tô. Vẫn nộp?`)) return;
+      wrap.classList.add("submitted");
+      submit.disabled = true;
+      const parts = {};
+      let ok = 0;
+      rows.forEach(({ it, row, bubbles }) => {
+        const good = picked[it.n] === it.a;
+        if (good) ok++;
+        const pt = parts[it.part] || (parts[it.part] = [0, 0]);
+        pt[1]++;
+        if (good) pt[0]++;
+        row.classList.add(good ? "as-ok" : "as-bad");
+        bubbles.forEach((x) => {
+          if (x.textContent === it.a) x.classList.add("ok");
+          else if (x.textContent === picked[it.n]) x.classList.add("bad");
+        });
+      });
+      const scaled = b.scale ? b.scale[ok] : null;
+      summary.hidden = false;
+      summary.append(h("table", {}, h("tbody", {},
+        Object.entries(parts).map(([k, [a, n]]) => h("tr", {}, h("td", {}, k), h("td", {}, a + "/" + n))),
+        h("tr", { class: "total" }, h("td", {}, "Tổng"), h("td", {}, ok + "/" + b.items.length)),
+        scaled != null ? h("tr", { class: "total" }, h("td", {}, "Điểm ước tính (theo bảng của sách)"), h("td", {}, String(scaled))) : null)),
+        h("p", { class: "muted small" }, "Bấm vào số câu để xem đáp án, lời thoại và nghe lại đoạn đó."));
+      document.dispatchEvent(new CustomEvent("sheet-scored", { detail: { id: b.id, ok, total: b.items.length, scaled } }));
+    }, "btn");
+    const wide = btn("↔ Phóng to trang đề", () => {
+      wrap.classList.toggle("wide");
+      wide.textContent = wrap.classList.contains("wide") ? "↔ Thu nhỏ trang đề" : "↔ Phóng to trang đề";
+    }, "btn small ghost");
+    const top = h("div", { class: "sheet-top" }, pl ? pl.el : null, b.seconds ? timer(b.seconds) : null, wide);
+    const wrap = h("div", { class: "sheet" }, top, h("div", { class: "sheet-body" }, book, h("div", { class: "answers-col" }, sheet, h("div", { class: "actions" }, submit), summary)));
+    return wrap;
+  };
+
+  /* Adds up the estimated scores of the sheets above (Listening + Reading). */
+  B.scoreboard = (b) => {
+    const got = {};
+    const el = h("div", { class: "scoreboard" });
+    const paint = () => {
+      el.textContent = "";
+      el.append(h("table", {}, h("tbody", {}, b.parts.map((p) => h("tr", {}, h("td", {}, p.label), h("td", {}, got[p.id] ? got[p.id].ok + "/" + got[p.id].total : "—"),
+        h("td", {}, got[p.id] && got[p.id].scaled != null ? String(got[p.id].scaled) : "—"))),
+        h("tr", { class: "total" }, h("td", {}, "Tổng điểm ước tính"), h("td", {}, ""),
+          h("td", {}, b.parts.every((p) => got[p.id]) ? String(b.parts.reduce((s, p) => s + got[p.id].scaled, 0)) : "—")))));
+    };
+    document.addEventListener("sheet-scored", (e) => { got[e.detail.id] = e.detail; paint(); });
+    paint();
+    return el;
+  };
+
   B.checklist = (b) => h("ul", { class: "checklist" }, b.items.map((t) => h("li", {}, h("label", {}, h("input", { type: "checkbox" }), h("span", { html: t })))));
 
   /* ======================================================================
