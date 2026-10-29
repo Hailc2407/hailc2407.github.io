@@ -51,7 +51,7 @@ Sau đó mở http://localhost:8000.
 
 ## Phòng học tiếng Anh (ẩn)
 
-Trên trang chủ bấm **Ctrl + Shift + L** (trên Mac là phím Control, không phải Command), nhập mật khẩu, trang sẽ chuyển tới `study/`. Bài học, ảnh và audio nằm trong `study/vault/` dưới dạng mã hoá AES-GCM, nên trên GitHub không đọc được nếu không có mật khẩu. Khoá giải mã chỉ được giữ trong tab đang mở: đóng tab hoặc bấm **Lock** là phải nhập lại.
+Trên trang chủ bấm **Ctrl + Shift + L** (trên Mac là phím Control, không phải Command), hoặc mở thẳng https://hailc2407.github.io/study/. Không cần mật khẩu: bài học, ảnh và audio vẫn nằm trong `study/vault/` dưới dạng mã hoá AES-GCM, nhưng trang `study/` tự mở khoá bằng mật khẩu ghi sẵn trong `study/study.js` (`OPEN`), nên ai có link cũng xem được.
 
 Nội dung gốc (script soạn bài, ảnh, audio) nằm trong repo private `toeic-materials`. Để thêm hoặc sửa bài, dựng lại thư mục nguồn rồi mã hoá lại bằng đúng mật khẩu cũ:
 

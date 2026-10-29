@@ -1122,6 +1122,8 @@
     else if (!id || !document.getElementById(id)) await showList();
   }
 
+  const OPEN = "english";
+
   function showLock() {
     app.textContent = "";
     const input = h("input", { class: "gate-input", type: "password", autocomplete: "off", "aria-label": "Password" });
@@ -1166,11 +1168,12 @@
     document.documentElement.dataset.theme = t;
     try { localStorage.setItem("theme", t); } catch (e) {}
   });
-  $("#t-lock").addEventListener("click", () => { V.lock(); location.href = "../"; });
-
   if (!V.supported) {
     app.append(h("p", { class: "loading" }, "Trình duyệt này không hỗ trợ. Hãy mở bằng Chrome, Safari hoặc Edge (qua https)."));
   } else {
-    V.resume().then((ok) => (ok ? start() : showLock()), showLock);
+    // No password any more: the page opens the vault by itself (OPEN is the vault's password).
+    V.resume()
+      .then((ok) => ok || V.unlock(OPEN))
+      .then((ok) => (ok ? start() : showLock()), showLock);
   }
 })();
