@@ -264,7 +264,7 @@ th { background: var(--surface); font-weight: 600; }
 .tag.good { margin-left: 6px; color: var(--ok); font-weight: 700; }
 .sh-line { font-size: 18px; margin-bottom: 4px; }
 .sh-text .link { color: var(--accent); font-weight: 700; }
-.sh-text .stress { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
+.sh-text .stress, .script .stress, .screen-lead .stress { font-weight: 700; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
 .recorder { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rec-audio { height: 34px; max-width: 260px; }
 
