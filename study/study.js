@@ -664,20 +664,21 @@
      word count, optional timer and template, task checklist and a sample response. */
   B.email = (b) => {
     const head = [["From", b.from], ["To", b.to], ["Subject", b.subject], ["Sent", b.sent]].filter((r) => r[1]);
-    const card = h("div", { class: "screen-card email-card" },
+    const card = h("div", { class: "screen-card email-card" + (head.length ? "" : " no-head") },
       h("div", { class: "screen-bar" }, b.bar || "Writing Test"),
       h("div", { class: "screen-body" },
         b.heading ? h("div", { class: "screen-title", html: b.heading }) : null,
-        h("table", { class: "email-head" }, h("tbody", {}, head.map((r) => h("tr", {}, h("th", {}, r[0] + ":"), h("td", { html: r[1] }))))),
+        head.length ? h("table", { class: "email-head" }, h("tbody", {}, head.map((r) => h("tr", {}, h("th", {}, r[0] + ":"), h("td", { html: r[1] }))))) : null,
         h("div", { class: "email-body", html: b.body }),
         b.directions ? h("div", { class: "email-dir", html: "<b>Directions:</b> " + b.directions }) : null));
     if (!b.write) return h("div", { class: "email" }, card);
-    const box = h("textarea", { class: "write-in email-in", rows: 11, spellcheck: "false", placeholder: "Write your response here…" });
+    const box = h("textarea", { class: "write-in email-in", rows: b.rows || 11, spellcheck: "false", placeholder: "Write your response here…" });
     if (b.template) box.value = b.template;
     const count = h("span", { class: "muted small" }, "0 words");
     const upd = () => {
       const n = (box.value.match(/[A-Za-z0-9’'-]+/g) || []).length;
-      count.textContent = n + " words";
+      count.textContent = n + (b.target ? " / " + b.target : "") + " words";
+      count.classList.toggle("ok-text", Boolean(b.target) && n >= b.target);
     };
     box.addEventListener("input", upd);
     upd();
@@ -691,6 +692,9 @@
       sample ? h("div", { class: "actions" }, btn("Bài mẫu", () => { sample.hidden = !sample.hidden; }, "btn small ghost")) : null,
       sample);
   };
+
+  /* Writing Q8: an opinion essay (same tools as the e-mail block, no header, a word target). */
+  B.essay = (b) => B.email(Object.assign({ write: true, rows: 20, target: 300 }, b));
 
   /* Hear one statement, pick the word you heard. */
   B.hear = (b) => {
