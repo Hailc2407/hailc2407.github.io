@@ -368,3 +368,16 @@ th { background: var(--surface); font-weight: 600; }
 .gap-list .clip { margin-right: 6px; vertical-align: middle; }
 .pq-ask { margin: 2px 0 10px; font-size: 17px; font-weight: 600; }
 .pq-ask.masked { min-height: 1.4em; }
+
+/* ---------- Speaking test screen (schedules) ---------- */
+.screen-card { max-width: 720px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.screen-bar { padding: 6px 14px; background: #1b2233; color: #c9d3e6; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+.screen-body { padding: 16px 20px; background: #fbfaf6; color: #1a1d24; font-family: Georgia, "Times New Roman", serif; }
+.screen-title { text-align: center; font-weight: 700; font-size: 18px; }
+.screen-lead { text-align: center; margin: 4px 0 10px; font-size: 15px; }
+.screen-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.screen-table td { padding: 4px 8px; border: 0; vertical-align: top; }
+.screen-table td:first-child { white-space: nowrap; font-weight: 600; width: 1%; }
+.screen-foot { margin-top: 10px; font-size: 14px; font-style: italic; }
+.screen-tools { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border); }
+.transcript > .btn.small:not(.ghost) { margin: 8px 8px 0 0; }
