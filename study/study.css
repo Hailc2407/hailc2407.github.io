@@ -397,3 +397,12 @@ th { background: var(--surface); font-weight: 600; }
 .email-in { max-width: 760px; min-height: 220px; line-height: 1.5; }
 .email .write-sample { max-width: 760px; }
 .email .write-sample p { margin: 0 0 6px; }
+
+/* Reading passages (Part 6) */
+.doc-card { max-width: 760px; }
+.doc-ref { margin-bottom: 8px; font-family: var(--display, sans-serif); font-size: 13px; font-weight: 700; color: #6b6150; }
+.doc-body { line-height: 1.6; font-size: 16px; }
+.doc-body p { margin: 0 0 8px; }
+.doc-body h4 { margin: 0 0 8px; text-align: center; font-size: 17px; }
+.doc-body .blank { display: inline-block; min-width: 70px; padding: 0 6px; border-bottom: 2px solid #1a1d24; font-weight: 700; text-align: center; }
+.doc-body .meta { font-size: 14px; color: #4a4a4a; }

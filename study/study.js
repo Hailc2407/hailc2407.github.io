@@ -652,6 +652,14 @@
     return h("div", { class: "write" }, b.seconds ? h("div", { class: "timer-row" }, timer(b.seconds), h("span", { class: "muted small" }, "thời gian làm bài như thi thật")) : null, items);
   };
 
+  /* A printed reading passage (Part 6/7): letter, notice, ad, memo… Blanks are written in the HTML. */
+  const docCard = (d) => h("div", { class: "screen-card doc-card" },
+    h("div", { class: "screen-bar" }, d.bar || "Reading Test"),
+    h("div", { class: "screen-body" },
+      d.heading ? h("div", { class: "doc-ref", html: d.heading }) : null,
+      h("div", { class: "doc-body", html: d.html })));
+  B.doc = (b) => docCard(b);
+
   /* An e-mail as the Writing test shows it (Questions 6-7). With b.write: a response box,
      word count, optional timer and template, task checklist and a sample response. */
   B.email = (b) => {
@@ -915,7 +923,9 @@
   /* Mini test: the whole track once, answer sheet, then score and review. */
   B.test = (b) => {
     const pl = b.track ? player(b.track, { note: "Nghe 1 lần, không dừng" }) : null;
-    const qs = b.items.map((q) => photoQ(q, pl, { text: b.text || "hidden", deferred: true }));
+    // Items may include passages ({ doc: {...} }) shown between the questions.
+    const els = b.items.map((q) => q.doc ? docCard(q.doc) : photoQ(q, pl, { text: b.text || "hidden", deferred: true }));
+    const qs = els.filter((e, i) => !b.items[i].doc);
     const sc = scoreLine();
     const submit = btn("Nộp bài", () => {
       const left = qs.filter((q) => !q.picked()).length;
@@ -927,7 +937,7 @@
     }, "btn");
     const top = pl ? h("div", { class: "sticky-player" }, pl.el)
       : b.seconds ? h("div", { class: "timer-row" }, timer(b.seconds), h("span", { class: "muted small" }, "thời gian làm bài như thi thật")) : null;
-    const wrapper = h("div", { class: "test" + (pl ? "" : " no-audio") }, top, h("div", { class: "test-grid" }, qs), h("div", { class: "actions" }, submit, sc.el));
+    const wrapper = h("div", { class: "test" + (pl ? "" : " no-audio") }, top, h("div", { class: "test-grid" }, els), h("div", { class: "actions" }, submit, sc.el));
     return wrapper;
   };
 
