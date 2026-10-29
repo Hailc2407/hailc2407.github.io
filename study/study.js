@@ -283,7 +283,7 @@
     h("div", { class: "screen-bar" }, "Speaking Test"),
     h("div", { class: "screen-body" },
       b.heading ? h("div", { class: "screen-title", html: b.heading }) : null,
-      b.lead ? h("div", { class: "screen-lead", html: b.lead }) : null,
+      b.lead ? h("div", { class: "screen-lead" + (b.lead.length > 200 ? " long" : ""), html: b.lead }) : null,
       b.rows ? h("table", { class: "screen-table" }, h("tbody", {}, b.rows.map((r) => h("tr", {}, r.map((c) => h("td", { html: c })))))) : null,
       b.foot ? h("div", { class: "screen-foot", html: b.foot }) : null),
     b.seconds ? h("div", { class: "screen-tools" }, timer(b.seconds), h("span", { class: "muted small" }, "thời gian đọc như thi thật")) : null);
@@ -652,6 +652,38 @@
     return h("div", { class: "write" }, b.seconds ? h("div", { class: "timer-row" }, timer(b.seconds), h("span", { class: "muted small" }, "thời gian làm bài như thi thật")) : null, items);
   };
 
+  /* An e-mail as the Writing test shows it (Questions 6-7). With b.write: a response box,
+     word count, optional timer and template, task checklist and a sample response. */
+  B.email = (b) => {
+    const head = [["From", b.from], ["To", b.to], ["Subject", b.subject], ["Sent", b.sent]].filter((r) => r[1]);
+    const card = h("div", { class: "screen-card email-card" },
+      h("div", { class: "screen-bar" }, b.bar || "Writing Test"),
+      h("div", { class: "screen-body" },
+        b.heading ? h("div", { class: "screen-title", html: b.heading }) : null,
+        h("table", { class: "email-head" }, h("tbody", {}, head.map((r) => h("tr", {}, h("th", {}, r[0] + ":"), h("td", { html: r[1] }))))),
+        h("div", { class: "email-body", html: b.body }),
+        b.directions ? h("div", { class: "email-dir", html: "<b>Directions:</b> " + b.directions }) : null));
+    if (!b.write) return h("div", { class: "email" }, card);
+    const box = h("textarea", { class: "write-in email-in", rows: 11, spellcheck: "false", placeholder: "Write your response here…" });
+    if (b.template) box.value = b.template;
+    const count = h("span", { class: "muted small" }, "0 words");
+    const upd = () => {
+      const n = (box.value.match(/[A-Za-z0-9’'-]+/g) || []).length;
+      count.textContent = n + " words";
+    };
+    box.addEventListener("input", upd);
+    upd();
+    const sample = b.sample ? h("div", { class: "write-sample", hidden: true }, h("div", { html: b.sample }),
+      b.analysis ? h("p", { class: "muted small", html: b.analysis }) : null) : null;
+    return h("div", { class: "email" }, card,
+      h("div", { class: "email-tools" }, b.seconds ? timer(b.seconds) : null, b.seconds ? h("span", { class: "muted small" }, "thời gian làm bài như thi thật") : null, count),
+      box,
+      b.tasks ? h("div", { class: "email-tasks" }, h("p", { class: "muted small" }, "Đã làm đủ các yêu cầu?"),
+        h("ul", { class: "checklist" }, b.tasks.map((t) => h("li", {}, h("label", {}, h("input", { type: "checkbox" }), h("span", { html: t })))))) : null,
+      sample ? h("div", { class: "actions" }, btn("Bài mẫu", () => { sample.hidden = !sample.hidden; }, "btn small ghost")) : null,
+      sample);
+  };
+
   /* Hear one statement, pick the word you heard. */
   B.hear = (b) => {
     const pl = player(b.track);
@@ -882,7 +914,7 @@
 
   /* Mini test: the whole track once, answer sheet, then score and review. */
   B.test = (b) => {
-    const pl = player(b.track, { note: "Nghe 1 lần, không dừng" });
+    const pl = b.track ? player(b.track, { note: "Nghe 1 lần, không dừng" }) : null;
     const qs = b.items.map((q) => photoQ(q, pl, { text: b.text || "hidden", deferred: true }));
     const sc = scoreLine();
     const submit = btn("Nộp bài", () => {
@@ -893,7 +925,9 @@
       wrapper.classList.add("submitted");
       submit.disabled = true;
     }, "btn");
-    const wrapper = h("div", { class: "test" }, h("div", { class: "sticky-player" }, pl.el), h("div", { class: "test-grid" }, qs), h("div", { class: "actions" }, submit, sc.el));
+    const top = pl ? h("div", { class: "sticky-player" }, pl.el)
+      : b.seconds ? h("div", { class: "timer-row" }, timer(b.seconds), h("span", { class: "muted small" }, "thời gian làm bài như thi thật")) : null;
+    const wrapper = h("div", { class: "test" + (pl ? "" : " no-audio") }, top, h("div", { class: "test-grid" }, qs), h("div", { class: "actions" }, submit, sc.el));
     return wrapper;
   };
 
