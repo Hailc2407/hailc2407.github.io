@@ -381,3 +381,19 @@ th { background: var(--surface); font-weight: 600; }
 .screen-foot { margin-top: 10px; font-size: 14px; font-style: italic; }
 .screen-tools { display: flex; gap: 10px; align-items: center; padding: 8px 12px; border-top: 1px solid var(--border); }
 .transcript > .btn.small:not(.ghost) { margin: 8px 8px 0 0; }
+
+/* Long on-screen texts (read aloud) and e-mails (Writing Q6-7) */
+.screen-lead.long { text-align: left; line-height: 1.6; }
+.email { display: grid; gap: 10px; }
+.email-card { max-width: 760px; }
+.email-head { width: auto; border-collapse: collapse; margin-bottom: 10px; font-size: 14px; }
+.email-head th, .email-head td { background: none; color: inherit; border: 0; }
+.email-head th { text-align: left; padding: 1px 12px 1px 0; font-weight: 700; white-space: nowrap; }
+.email-head td { padding: 1px 0; }
+.email-body { padding-top: 10px; border-top: 1px solid #d9d5c8; line-height: 1.55; }
+.email-body p { margin: 0 0 8px; }
+.email-dir { margin-top: 12px; padding: 8px 12px; border-left: 3px solid #b08a2e; background: #f3efe2; font-size: 15px; }
+.email-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.email-in { max-width: 760px; min-height: 220px; line-height: 1.5; }
+.email .write-sample { max-width: 760px; }
+.email .write-sample p { margin: 0 0 6px; }
