@@ -278,6 +278,16 @@
     b.head ? h("thead", {}, h("tr", {}, b.head.map((c) => h("th", { html: c })))) : null,
     h("tbody", {}, b.rows.map((r) => h("tr", {}, r.map((c) => h("td", { html: c })))))));
 
+  /* An on-screen information text (schedule, agenda, itinerary) like the Speaking test shows. */
+  B.screen = (b) => h("div", { class: "screen-card" },
+    h("div", { class: "screen-bar" }, "Speaking Test"),
+    h("div", { class: "screen-body" },
+      b.heading ? h("div", { class: "screen-title", html: b.heading }) : null,
+      b.lead ? h("div", { class: "screen-lead", html: b.lead }) : null,
+      b.rows ? h("table", { class: "screen-table" }, h("tbody", {}, b.rows.map((r) => h("tr", {}, r.map((c) => h("td", { html: c })))))) : null,
+      b.foot ? h("div", { class: "screen-foot", html: b.foot }) : null),
+    b.seconds ? h("div", { class: "screen-tools" }, timer(b.seconds), h("span", { class: "muted small" }, "thời gian đọc như thi thật")) : null);
+
   /* Rows of words that sound alike; click a word to hear it. */
   B.sounds = (b) => h("div", { class: "sounds" }, b.rows.map((r) => h("div", { class: "sound-row" },
     r.map((w) => h("button", { type: "button", class: "chip", onclick: () => Speech.say(w) }, w)))));
@@ -583,8 +593,9 @@
   /* Recording of the book + its script, hidden until asked. */
   B.transcript = (b) => {
     const pl = player(b.track);
+    const clip = b.seg && pl.ok ? btn(b.segLabel || "▶ Nghe đoạn này", () => pl.clip(b.seg[0], b.seg[1]), "btn small") : null;
     const box = h("div", { class: "script", hidden: !b.open, html: b.html });
-    return h("div", { class: "transcript" }, h("div", { class: "row" }, pl.el),
+    return h("div", { class: "transcript" }, h("div", { class: "row" }, pl.el), clip,
       btn(b.open ? "Ẩn lời" : "📄 Hiện lời (script)", (e) => {
         box.hidden = !box.hidden;
         e.currentTarget.textContent = box.hidden ? "📄 Hiện lời (script)" : "Ẩn lời";
@@ -872,7 +883,7 @@
   /* Mini test: the whole track once, answer sheet, then score and review. */
   B.test = (b) => {
     const pl = player(b.track, { note: "Nghe 1 lần, không dừng" });
-    const qs = b.items.map((q) => photoQ(q, pl, { text: "hidden", deferred: true }));
+    const qs = b.items.map((q) => photoQ(q, pl, { text: b.text || "hidden", deferred: true }));
     const sc = scoreLine();
     const submit = btn("Nộp bài", () => {
       const left = qs.filter((q) => !q.picked()).length;
