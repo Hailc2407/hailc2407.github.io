@@ -569,12 +569,15 @@
       } }, num, h("span", { html: t }));
       return { row, num };
     });
+    // b.inline: short word chunks shown side by side, with the sentence built so far.
+    const preview = b.inline ? h("p", { class: "ord-preview" }) : null;
     function paint() {
       rows.forEach((r, i) => {
         const at = picked.indexOf(i);
         r.num.textContent = at >= 0 ? at + 1 : "";
         r.row.classList.toggle("on", at >= 0);
       });
+      if (preview) preview.textContent = picked.length ? picked.map((i) => b.items[i]).join(" ") : "…";
     }
     const check = btn("Kiểm tra", () => {
       if (picked.length < b.items.length) return toast("Hãy đánh số hết các dòng trước");
@@ -588,18 +591,25 @@
       });
       wrap.dataset.done = 1;
       sc.set(ok, rows.length);
+      if (preview && ok < rows.length) {
+        const right = b.items.map((t, i) => [b.answer[i], t]).sort((x, y) => x[0] - y[0]).map((x) => x[1]).join(" ");
+        preview.append(h("span", { class: "ans" }, "  ✓ " + right));
+        miss("order:" + right, { type: "gap", q: "(" + b.items.join(" / ") + ") → ___", a: [[right]] });
+      }
     }, "btn");
     const reset = btn("Làm lại", () => {
       picked = [];
+      if (preview) preview.textContent = "…";
       delete wrap.dataset.done;
       rows.forEach((r) => r.row.classList.remove("ok", "bad"));
       paint();
       sc.el.hidden = true;
     }, "btn ghost");
-    const wrap = h("div", { class: "order" }, pl ? h("div", { class: "sticky-player" }, pl.el) : null,
+    const wrap = h("div", { class: "order" + (b.inline ? " inline" : "") }, pl ? h("div", { class: "sticky-player" }, pl.el) : null,
       b.img ? h("div", { class: "order-img" }, img(b.img)) : null,
       h("p", { class: "muted small" }, "Bấm lần lượt theo thứ tự đúng (bấm lại để bỏ chọn)."),
-      h("div", { class: "ord-list" }, rows.map((r) => r.row)), h("div", { class: "actions" }, check, reset, sc.el));
+      h("div", { class: "ord-list" }, rows.map((r) => r.row)), preview, h("div", { class: "actions" }, check, reset, sc.el));
+    paint();
     return wrap;
   };
 
