@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Fishery Short</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; background: #05070c; }
+  body { display: grid; place-items: center; min-height: 100vh; }
+  canvas { display: block; height: 96vh; aspect-ratio: 9 / 16; background: #0b0e15; }
+  body.render canvas { height: auto; width: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+/* Vertical short (1080x1920, 9:16) about the saturated-catch fishery model
+   with a rarity-dependent price, using the same equations and parameters as
+   the research panel on the homepage (assets/js/diagrams.js):
+     N' = rN(1 - N/K) - qNE/(N + D),   E' = E[q(aN + b)/(N + D) - c]
+   Everything on screen is a pure function of the time t, so render.mjs can
+   step through it frame by frame. Opening the page plays it in real time. */
+
+const W = 1080, H = 1920, DURATION = 38;
+const cv = document.getElementById("c");
+const ctx = cv.getContext("2d");
+
+const COL = {
+  bg: "#0b0e15", text: "#eef1f7", muted: "#8f98ad", faint: "#4a5368",
+  mint: "#5fe3c0", lilac: "#b9a6ff", rose: "#ff8f9e", line: "#232b3b",
+  sea1: "#0f2033", sea2: "#0a121f",
+};
+const FONT = "Inter, 'DejaVu Sans', sans-serif";
+
+/* ---------- the model ---------- */
+const FP = { r: 1, K: 10, q: 1, a: 1, b: 0.5, D: 2 };
+const C0 = (FP.q * FP.b) / FP.D;                                         // 0.25
+const CH = (FP.q * (FP.a * (FP.K - FP.D) + 2 * FP.b)) / (FP.K + FP.D);   // 0.75, Hopf
+const C1 = (FP.q * (FP.a * FP.K + FP.b)) / (FP.K + FP.D);                // 0.875
+function field(N, E, c) {
+  const { r, K, q, a, b, D } = FP;
+  return [r * N * (1 - N / K) - (q * N * E) / (N + D), E * ((q * (a * N + b)) / (N + D) - c)];
+}
+function rk4(s, c, h) {
+  const k1 = field(s[0], s[1], c);
+  const k2 = field(s[0] + (h / 2) * k1[0], s[1] + (h / 2) * k1[1], c);
+  const k3 = field(s[0] + (h / 2) * k2[0], s[1] + (h / 2) * k2[1], c);
+  const k4 = field(s[0] + h * k3[0], s[1] + h * k3[1], c);
+  return [s[0] + (h / 6) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]), s[1] + (h / 6) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1])];
+}
+function trajectory(c, T, start = [9, 0.5]) {
+  const h = 0.01, every = 5, pts = [];
+  let s = start.slice();
+  for (let i = 0; i * h <= T; i++) {
+    if (i % every === 0) pts.push([i * h, s[0], s[1]]);
+    s = rk4(s, c, h);
+    s[0] = Math.max(0, s[0]); s[1] = Math.max(0, s[1]);
+  }
+  return pts;
+}
+
+/* ---------- timeline ---------- */
+// Three regimes of the fishing cost c, each with its own clip of model time.
+const REGIMES = [
+  { a: 11, b: 18, c: 0.8, T: 70, tag: "Ra khơi tốn kém", cap: "Ít tàu có lãi, đánh bắt vừa phải",
+    verdict: "Biển tự cân bằng", tone: COL.mint },
+  { a: 18, b: 26.5, c: 0.65, T: 125, tag: "Ra khơi rẻ hơn", cap: "Cá vừa hồi phục, tàu lại ồ ạt ra khơi",
+    verdict: "Bùng nổ, sụp đổ, lặp lại mãi", tone: COL.lilac },
+  { a: 26.5, b: 32.5, c: 0.2, T: 22, tag: "Ra khơi rất rẻ", cap: "Cá càng hiếm, giá càng cao, vẫn có lãi",
+    verdict: "Bắt đến những con cá cuối cùng", tone: COL.rose },
+];
+for (const R of REGIMES) {
+  R.pts = trajectory(R.c, R.T);
+  R.minN = Math.min(...R.pts.map((p) => p[1]));
+  R.run = [R.a + 0.7, R.b - 1.6]; // video seconds over which model time 0..T plays
+}
+
+/* ---------- helpers ---------- */
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => 1 - Math.pow(1 - x, 3);
+const easeIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const lerp = (a, b, x) => a + (b - a) * x;
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+// fade in at a, fade out at b
+const presence = (t, a, b, fin = 0.45, fout = 0.4) => Math.min(ease(seg(t, a, a + fin)), 1 - ease(seg(t, b - fout, b)));
+
+function text(str, x, y, { size = 56, weight = 700, color = COL.text, align = "center", alpha = 1, rise = 0, font = FONT, spacing = 0 } = {}) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px ${font}`;
+  ctx.textAlign = align;
+  ctx.textBaseline = "alphabetic";
+  if (spacing) ctx.letterSpacing = `${spacing}px`;
+  ctx.fillText(str, x, y + rise);
+  ctx.restore();
+}
+// text that fades and rises in from its start time
+function reveal(str, x, y, t0, t, opts = {}) {
+  const p = ease(seg(t, t0, t0 + 0.45));
+  text(str, x, y, { ...opts, alpha: (opts.alpha ?? 1) * p, rise: (1 - p) * 28 });
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+function pill(str, cx, y, color, alpha, size = 34) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.font = `700 ${size}px ${FONT}`;
+  const w = ctx.measureText(str).width + 56, h = size + 30;
+  roundRect(cx - w / 2, y - h / 2, w, h, h / 2);
+  ctx.fillStyle = color + "22"; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = color + "88"; ctx.stroke();
+  ctx.fillStyle = color; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(str, cx, y + 2);
+  ctx.restore();
+}
+
+/* ---------- fish and boats ---------- */
+const FISH_MAX = 72;
+const fishes = (() => {
+  const R = rng(7), list = [];
+  for (let i = 0; i < FISH_MAX; i++) {
+    list.push({ u: R(), v: R(), sp: 0.025 + R() * 0.05, dir: R() < 0.5 ? -1 : 1, s: 0.75 + R() * 0.6, ph: R() * 6.28,
+      tint: R() < 0.22 ? COL.lilac : COL.mint });
+  }
+  return list;
+})();
+function fish(x, y, s, dir, color, alpha, t, ph) {
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.translate(x, y);
+  ctx.scale(dir * s, s);
+  const wag = Math.sin(t * 9 + ph) * 3;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 17, 7.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-14, 0); ctx.lineTo(-27, -8 + wag); ctx.lineTo(-27, 8 + wag); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = COL.bg;
+  ctx.beginPath(); ctx.arc(9, -1.5, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+// Draw the school inside a box; count is fractional so fish fade in and out smoothly.
+function school(box, count, t, alpha = 1, colorAll = null) {
+  for (let i = 0; i < FISH_MAX; i++) {
+    const f = fishes[i];
+    const a = clamp(count - i) * alpha;
+    if (a <= 0) continue;
+    const span = box.w + 80;
+    let x = (f.u * span + f.dir * f.sp * span * t) % span;
+    if (x < 0) x += span;
+    x = box.x - 40 + x;
+    const y = box.y + 20 + f.v * (box.h - 40) + Math.sin(t * 1.3 + f.ph) * 8;
+    fish(x, y, f.s, f.dir, colorAll || f.tint, a * 0.9, t, f.ph);
+  }
+}
+function boat(x, y, color, alpha) {
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.translate(x, y);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(-30, -6); ctx.lineTo(30, -6); ctx.lineTo(20, 10); ctx.lineTo(-20, 10); ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(-2, -42, 4, 36);
+  ctx.beginPath();
+  ctx.moveTo(4, -40); ctx.lineTo(26, -12); ctx.lineTo(4, -12); ctx.closePath();
+  ctx.globalAlpha *= 0.75;
+  ctx.fill();
+  ctx.restore();
+}
+const BOAT_MAX = 13;
+const boatSlots = (() => {
+  const R = rng(21), xs = [];
+  for (let i = 0; i < BOAT_MAX; i++) xs.push({ u: (i + 0.5) / BOAT_MAX + (R() - 0.5) * 0.04, ph: R() * 6.28 });
+  // fill from the middle outwards so a few boats sit centred
+  return xs.sort((p, q) => Math.abs(p.u - 0.5) - Math.abs(q.u - 0.5));
+})();
+
+/* ---------- layout ---------- */
+const SEA = { x: 90, y: 520, w: 900, h: 500 };
+const SURF = SEA.y + 92;
+const CHART = { x: 90, y: 1065, w: 900, h: 300 };
+const E_SCALE = 6; // effort shown on the chart from 0 to 6
+
+function seaFrame(t, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  roundRect(SEA.x, SEA.y, SEA.w, SEA.h, 40);
+  const g = ctx.createLinearGradient(0, SEA.y, 0, SEA.y + SEA.h);
+  g.addColorStop(0, "#111a2a"); g.addColorStop(0.18, COL.sea1); g.addColorStop(1, COL.sea2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.clip();
+  // sky band and water surface
+  ctx.fillStyle = "#0d1422";
+  ctx.fillRect(SEA.x, SEA.y, SEA.w, SURF - SEA.y);
+  ctx.beginPath();
+  for (let x = SEA.x; x <= SEA.x + SEA.w; x += 6) {
+    const y = SURF + Math.sin(x / 55 + t * 2) * 4 + Math.sin(x / 23 - t * 1.4) * 2;
+    x === SEA.x ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.lineTo(SEA.x + SEA.w, SEA.y + SEA.h); ctx.lineTo(SEA.x, SEA.y + SEA.h); ctx.closePath();
+  ctx.fillStyle = COL.sea1; ctx.fill();
+  ctx.strokeStyle = "#2c4766"; ctx.lineWidth = 3; ctx.stroke();
+  // light rays
+  ctx.globalAlpha *= 0.06;
+  ctx.fillStyle = "#9fd8ff";
+  for (let i = 0; i < 4; i++) {
+    const x0 = SEA.x + 120 + i * 230 + Math.sin(t * 0.4 + i) * 20;
+    ctx.beginPath(); ctx.moveTo(x0, SURF); ctx.lineTo(x0 + 60, SURF); ctx.lineTo(x0 + 160, SEA.y + SEA.h); ctx.lineTo(x0 + 40, SEA.y + SEA.h); ctx.fill();
+  }
+  ctx.restore();
+}
+function seaContents(t, N, E, alpha, color) {
+  if (alpha <= 0) return;
+  ctx.save();
+  roundRect(SEA.x, SEA.y, SEA.w, SEA.h, 40);
+  ctx.clip();
+  school({ x: SEA.x, y: SURF + 20, w: SEA.w, h: SEA.h - (SURF - SEA.y) - 30 }, (N / FP.K) * FISH_MAX, t, alpha);
+  const nb = Math.min(BOAT_MAX, E * 2.2);
+  for (let i = 0; i < BOAT_MAX; i++) {
+    const a = clamp(nb - i) * alpha;
+    if (a <= 0) continue;
+    const s = boatSlots[i];
+    boat(SEA.x + 50 + s.u * (SEA.w - 100), SURF - 6 + Math.sin(t * 2.2 + s.ph) * 4, COL.lilac, a);
+  }
+  ctx.restore();
+  // readouts
+  const pct = Math.round((N / FP.K) * 100);
+  ctx.save(); ctx.globalAlpha *= alpha;
+  roundRect(SEA.x + 18, SEA.y + SEA.h - 78, 290, 64, 18);
+  ctx.fillStyle = "rgba(8, 13, 22, 0.78)"; ctx.fill();
+  ctx.restore();
+  text(`Lượng cá  ${pct}%`, SEA.x + 36, SEA.y + SEA.h - 30, { size: 34, weight: 700, color: color || COL.mint, align: "left", alpha });
+}
+
+function chart(R, t, alpha) {
+  if (alpha <= 0) return;
+  const { x, y, w, h } = CHART;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  // legend
+  ctx.lineWidth = 6; ctx.lineCap = "round";
+  ctx.strokeStyle = COL.mint; ctx.beginPath(); ctx.moveTo(x + 4, y + 2); ctx.lineTo(x + 44, y + 2); ctx.stroke();
+  text("lượng cá", x + 58, y + 13, { size: 30, weight: 600, color: COL.text, align: "left" });
+  ctx.strokeStyle = COL.lilac; ctx.beginPath(); ctx.moveTo(x + 250, y + 2); ctx.lineTo(x + 290, y + 2); ctx.stroke();
+  text("số tàu", x + 304, y + 13, { size: 30, weight: 600, color: COL.text, align: "left" });
+  text("thời gian →", x + w, y + h + 50, { size: 28, weight: 500, color: COL.muted, align: "right" });
+  // axes
+  const top = y + 46, bot = y + h;
+  ctx.strokeStyle = COL.line; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bot); ctx.lineTo(x + w, bot); ctx.stroke();
+  // lines, drawn up to the current model time
+  const p = seg(t, R.run[0], R.run[1]);
+  const tm = p * R.T;
+  const X = (s) => x + (s / R.T) * w;
+  const YN = (N) => bot - (N / FP.K) * (bot - top);
+  const YE = (E) => bot - (Math.min(E, E_SCALE) / E_SCALE) * (bot - top);
+  const draw = (Y, idx, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 6; ctx.lineJoin = "round";
+    ctx.beginPath();
+    let last = null;
+    for (const pt of R.pts) {
+      if (pt[0] > tm) break;
+      const px = X(pt[0]), py = Y(pt[idx]);
+      last ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      last = [px, py];
+    }
+    ctx.stroke();
+    if (last) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(last[0], last[1], 9, 0, Math.PI * 2); ctx.fill(); }
+  };
+  draw(YE, 2, COL.lilac);
+  draw(YN, 1, COL.mint);
+  ctx.restore();
+}
+
+// Model state shown on screen at video time t for regime index k
+function stateAt(k, t) {
+  const R = REGIMES[k];
+  const tm = seg(t, R.run[0], R.run[1]) * R.T;
+  let i = Math.min(R.pts.length - 1, Math.round(tm / 0.05));
+  let [, N, E] = R.pts[i];
+  // ease from the previous regime's final state into this regime's start
+  if (k > 0) {
+    const P = REGIMES[k - 1], last = P.pts[P.pts.length - 1];
+    const m = easeIO(seg(t, R.a, R.run[0]));
+    N = lerp(last[1], N, m); E = lerp(Math.min(last[2], 6), E, m);
+  }
+  return [N, E];
+}
+
+/* ---------- scenes ---------- */
+function header(t) {
+  // series tag, kept below the top safe zone
+  const a = presence(t, 0, DURATION, 0.5, 0.5);
+  text("TOÁN ẨN TRONG ĐỜI SỐNG", W / 2, 250, { size: 28, weight: 700, color: COL.muted, alpha: a, spacing: 6 });
+}
+
+function sceneHook(t) {
+  const a = presence(t, 0, 4.6, 0.01, 0.45);
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  // fish thin out over the scene
+  const left = lerp(FISH_MAX, 9, easeIO(seg(t, 0.8, 4.2)));
+  school({ x: 0, y: 1060, w: W, h: 560 }, left, t, 0.85);
+  reveal("Cá càng hiếm", W / 2, 640, 0.15, t, { size: 104, weight: 800 });
+  reveal("giá càng đắt.", W / 2, 770, 0.75, t, { size: 104, weight: 800, color: COL.mint });
+  reveal("Vậy điều gì sẽ xảy ra", W / 2, 920, 2.0, t, { size: 56, weight: 600, color: COL.lilac });
+  reveal("với biển?", W / 2, 990, 2.2, t, { size: 56, weight: 600, color: COL.lilac });
+  ctx.restore();
+}
+
+function sceneLoop(t) {
+  const A = 4.6, B = 11;
+  const a = presence(t, A, B);
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  reveal("Một vòng lặp", W / 2, 420, A + 0.1, t, { size: 76, weight: 800 });
+  const cx = W / 2, cy = 945, rx = 310, ry = 320;
+  const at = (ang) => [cx + rx * Math.cos(ang), cy + ry * Math.sin(ang)];
+  const nodes = [
+    { ang: -90, l1: "Cá ít đi", col: COL.mint },
+    { ang: 0, l1: "Giá tăng", col: COL.rose },
+    { ang: 90, l1: "Có lãi,", l2: "thêm tàu ra khơi", col: COL.lilac },
+    { ang: 180, l1: "Đánh bắt", l2: "nhiều hơn", col: COL.lilac },
+  ];
+  // ring and arrows, appearing one by one
+  ctx.strokeStyle = COL.line; ctx.lineWidth = 3;
+  ctx.setLineDash([4, 14]);
+  ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  for (let i = 0; i < 4; i++) {
+    const p = ease(seg(t, A + 0.9 + i * 0.75, A + 1.5 + i * 0.75));
+    if (p <= 0) continue;
+    const a0 = ((nodes[i].ang + 24) * Math.PI) / 180, a1 = ((nodes[i].ang + 24 + 42 * p) * Math.PI) / 180;
+    ctx.strokeStyle = COL.muted; ctx.lineWidth = 5; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, a0, a1); ctx.stroke();
+    if (p > 0.95) {
+      const [hx, hy] = at(a1), dir = Math.atan2(ry * Math.cos(a1), -rx * Math.sin(a1));
+      ctx.fillStyle = COL.muted; ctx.beginPath();
+      ctx.moveTo(hx + 16 * Math.cos(dir), hy + 16 * Math.sin(dir));
+      ctx.lineTo(hx + 12 * Math.cos(dir + 2.2), hy + 12 * Math.sin(dir + 2.2));
+      ctx.lineTo(hx + 12 * Math.cos(dir - 2.2), hy + 12 * Math.sin(dir - 2.2));
+      ctx.fill();
+    }
+  }
+  // travelling dot once the loop is complete
+  const run = seg(t, A + 4, B);
+  if (run > 0) {
+    const ang = ((-90 + run * 540) * Math.PI) / 180;
+    ctx.fillStyle = COL.mint; ctx.globalAlpha = a * ease(seg(t, A + 4, A + 4.3));
+    const [dx, dy] = at(ang);
+    ctx.beginPath(); ctx.arc(dx, dy, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = a;
+  }
+  nodes.forEach((n, i) => {
+    const t0 = A + 0.5 + i * 0.75;
+    const p = ease(seg(t, t0, t0 + 0.4));
+    if (p <= 0) return;
+    const ang = (n.ang * Math.PI) / 180;
+    const [nx, ny] = at(ang);
+    ctx.save(); ctx.globalAlpha *= p;
+    ctx.font = `800 40px ${FONT}`;
+    const w = Math.max(ctx.measureText(n.l1).width, n.l2 ? ctx.measureText(n.l2).width : 0) + 56;
+    const h = n.l2 ? 116 : 76;
+    roundRect(nx - w / 2, ny - h / 2, w, h, 24);
+    ctx.fillStyle = "#121826"; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = n.col; ctx.stroke();
+    text(n.l1, nx, ny + (n.l2 ? -8 : 14), { size: 40, weight: 800, color: n.col });
+    if (n.l2) text(n.l2, nx, ny + 38, { size: 34, weight: 600, color: COL.text });
+    ctx.restore();
+  });
+  reveal("giá theo độ hiếm", cx, cy - 18, A + 1.2, t, { size: 32, weight: 500, color: COL.muted });
+  reveal("p(N) = a + b/N", cx, cy + 40, A + 1.4, t, { size: 34, weight: 600, color: COL.text, font: "'JetBrains Mono', monospace" });
+  reveal("Vòng lặp này dừng ở đâu?", W / 2, 1445, A + 3.9, t, { size: 52, weight: 700, color: COL.text });
+  reveal("Tuỳ vào chi phí ra khơi.", W / 2, 1515, A + 4.6, t, { size: 52, weight: 700, color: COL.mint });
+  ctx.restore();
+}
+
+function sceneRegimes(t) {
+  const A = REGIMES[0].a, B = REGIMES[2].b;
+  const frameA = presence(t, A, B);
+  if (frameA <= 0) return;
+  seaFrame(t, frameA);
+  // which regime is on, and how strongly
+  REGIMES.forEach((R, k) => {
+    const isLast = k === REGIMES.length - 1;
+    const a = presence(t, R.a, R.b, k === 0 ? 0.45 : 0.3, isLast ? 0.4 : 0.3);
+    if (a <= 0) return;
+    const [N, E] = stateAt(k, t);
+    ctx.save(); ctx.globalAlpha = a;
+    pill(`${k + 1}/3 · ${R.tag}`, W / 2, 335, R.tone, 1, 36);
+    reveal(R.cap, W / 2, 445, R.a + 0.2, t, { size: 42, weight: 600, color: COL.text });
+    ctx.restore();
+    seaContents(t, N, E, frameA, null);
+    ctx.save(); ctx.globalAlpha = a;
+    chart(R, t, 1);
+    // verdict
+    const vt = R.run[1] - 0.2;
+    reveal(`→ ${R.verdict}`, W / 2, 1480, vt, t, { size: 54, weight: 800, color: R.tone });
+    if (k === 1) {
+      const low = Math.max(1, Math.round((R.minN / FP.K) * 100));
+      reveal(`có lúc cá chỉ còn khoảng ${low}%`, W / 2, 1540, vt + 0.4, t, { size: 38, weight: 500, color: COL.muted });
+    }
+    ctx.restore();
+  });
+}
+
+function sceneOutro(t) {
+  const A = 32.5, B = DURATION;
+  const a = presence(t, A, B + 1, 0.45, 0.01);
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  reveal("Ra khơi càng rẻ,", W / 2, 470, A + 0.1, t, { size: 84, weight: 800 });
+  reveal("biển càng bất ổn.", W / 2, 575, A + 0.5, t, { size: 84, weight: 800, color: COL.mint });
+
+  // the cost axis split by the three thresholds of the model
+  // schematic: zone widths are chosen for legibility, the thresholds are exact
+  const x0 = 110, x1 = 970;
+  const edges = [x0, x0 + 170, x0 + 470, x0 + 670, x1];
+  const X = (c) => (c === C0 ? edges[1] : c === CH ? edges[2] : c === C1 ? edges[3] : c < C0 ? x0 : x1);
+  const y = 820, hh = 76;
+  const zones = [
+    [0, C0, COL.rose, "cạn kiệt"],
+    [C0, CH, COL.lilac, "bùng nổ – sụp đổ"],
+    [CH, C1, COL.mint, "cân bằng"],
+    [C1, 9, COL.faint, "bỏ nghề"],
+  ];
+  const grow = ease(seg(t, A + 1.0, A + 2.2));
+  zones.forEach(([ca, cb, col, lab], i) => {
+    const p = clamp(grow * 4 - i);
+    if (p <= 0) return;
+    ctx.save(); ctx.globalAlpha *= p;
+    roundRect(X(ca) + 3, y, X(cb) - X(ca) - 6, hh, 14);
+    ctx.fillStyle = col + "33"; ctx.fill();
+    ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+    text(lab, (X(ca) + X(cb)) / 2, y + 48, { size: 30, weight: 700, color: col === COL.faint ? COL.muted : col });
+    ctx.restore();
+  });
+  const tickA = ease(seg(t, A + 2.0, A + 2.5));
+  [[C0, "c = 0.25"], [CH, "0.75"], [C1, "0.875"]].forEach(([c, s]) => {
+    text(s, X(c), y + hh + 46, { size: 28, weight: 600, color: COL.muted, alpha: tickA, font: "'JetBrains Mono', monospace" });
+  });
+  text("chi phí ra khơi  c  →", x1, y + hh + 100, { size: 30, weight: 500, color: COL.muted, align: "right", alpha: tickA });
+  // Hopf marker
+  const hp = ease(seg(t, A + 2.4, A + 2.9));
+  if (hp > 0) {
+    ctx.save(); ctx.globalAlpha *= hp;
+    ctx.strokeStyle = COL.text; ctx.lineWidth = 3; ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.moveTo(X(CH), y - 70); ctx.lineTo(X(CH), y + hh + 8); ctx.stroke();
+    ctx.restore();
+    text("phân nhánh Hopf", X(CH), y - 84, { size: 32, weight: 700, color: COL.text, alpha: hp });
+  }
+  reveal("Ranh giới giữa cân bằng và dao động", W / 2, 1110, A + 2.9, t, { size: 40, weight: 600, color: COL.text });
+  reveal("được tính chính xác bằng toán học.", W / 2, 1165, A + 3.1, t, { size: 40, weight: 600, color: COL.text });
+
+  const eqA = ease(seg(t, A + 3.4, A + 3.9));
+  text("N′ = rN(1 − N/K) − qNE/(N + D)", W / 2, 1290, { size: 34, weight: 500, color: COL.muted, alpha: eqA, font: "'JetBrains Mono', monospace" });
+  text("E′ = E[ q(aN + b)/(N + D) − c ]", W / 2, 1340, { size: 34, weight: 500, color: COL.muted, alpha: eqA, font: "'JetBrains Mono', monospace" });
+  reveal("Mô hình nghiên cứu · Lê Cảnh Hải · COSMOS Lab", W / 2, 1440, A + 3.8, t, { size: 30, weight: 600, color: COL.lilac });
+  ctx.restore();
+}
+
+function render(t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = COL.bg;
+  ctx.fillRect(0, 0, W, H);
+  // soft glow behind the centre
+  const g = ctx.createRadialGradient(W / 2, 900, 50, W / 2, 900, 900);
+  g.addColorStop(0, "#131b2c"); g.addColorStop(1, COL.bg);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  header(t);
+  sceneHook(t);
+  sceneLoop(t);
+  sceneRegimes(t);
+  sceneOutro(t);
+}
+
+window.DURATION = DURATION;
+window.render = render;
+window.ready = document.fonts.load(`800 40px Inter`).then(() => document.fonts.load(`500 30px 'JetBrains Mono'`));
+
+if (!location.search.includes("render")) {
+  const t0 = performance.now();
+  const loop = (now) => { render(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  window.ready.then(() => requestAnimationFrame(loop));
+} else {
+  document.body.classList.add("render");
+}
+</script>
+</body>
+</html>
