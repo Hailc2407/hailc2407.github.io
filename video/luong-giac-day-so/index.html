@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Lượng giác và Dãy số</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="node_modules/katex/dist/katex.min.css">
+<script src="node_modules/katex/dist/katex.min.js"></script>
+<style>
+  :root {
+    --bg: #0e1424; --text: #eef2fa; --muted: #98a3ba; --faint: #3a4561;
+    --yellow: #ffd166; --mint: #5fe3c0; --pink: #ff7d99; --blue: #6cc0ff; --lilac: #b9a6ff; --orange: #ffa45c; --red: #ff5d6c;
+  }
+  html, body { margin: 0; background: #05070c; overflow: hidden; }
+  #stage {
+    position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0;
+    color: var(--text); font-family: Inter, "DejaVu Sans", sans-serif;
+    background:
+      radial-gradient(ellipse at 50% 40%, #16203a 0%, rgba(14,20,36,0) 70%),
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 60px 60px,
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 60px 60px,
+      var(--bg);
+  }
+  .scene { position: absolute; inset: 0; display: none; }
+  .item { position: absolute; white-space: nowrap; line-height: 1.35; will-change: opacity, transform; }
+  .item.wrap { white-space: normal; }
+  .box { border: 3px solid; border-radius: 18px; padding: 12px 28px; }
+  .kicker { font-weight: 700; letter-spacing: 4px; font-size: 26px; }
+  .title { font-weight: 800; font-size: 60px; }
+  .card { border-radius: 22px; padding: 22px 28px; background: #141c30; border: 2px solid #26314d; white-space: normal; }
+  .card h3 { margin: 0 0 12px; font-size: 30px; }
+  .katex { font-size: 1.08em; }
+  .muted { color: var(--muted); }
+  b { font-weight: 800; }
+  svg text { font-family: KaTeX_Main, serif; }
+  #progress { position: absolute; left: 0; bottom: 0; height: 6px; background: var(--mint); opacity: 0.7; }
+  #chapter { position: absolute; right: 40px; bottom: 22px; font-size: 22px; color: var(--muted); letter-spacing: 2px; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="progress"></div><div id="chapter"></div></div>
+<script>
+/* Lesson video (1920x1080, 16:9) for Grade 11: trigonometry and sequences.
+   Each scene builds its DOM once; render(t) then sets every opacity, transform
+   and moving SVG shape from the time t alone, so render.mjs can capture it
+   frame by frame. Opening the page plays it in real time. */
+const W = 1920, H = 1080;
+const C = { text: "#eef2fa", muted: "#98a3ba", faint: "#3a4561", line: "#53607d", yellow: "#ffd166", mint: "#5fe3c0",
+  pink: "#ff7d99", blue: "#6cc0ff", lilac: "#b9a6ff", orange: "#ffa45c", red: "#ff5d6c", bg: "#0e1424" };
+const PI = Math.PI;
+const r = String.raw;
+const stage = document.getElementById("stage");
+const NS = "http://www.w3.org/2000/svg";
+
+/* ---------- helpers ---------- */
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = (x) => 1 - Math.pow(1 - x, 3);
+const easeIO = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const lerp = (a, b, x) => a + (b - a) * x;
+const fmt = (x, d = 2) => x.toFixed(d).replace(".", "{,}");
+
+function tex(s, display = false) { return katex.renderToString(s, { throwOnError: false, displayMode: display }); }
+// "text $math$ text" -> HTML; $$...$$ renders in display style inline
+function rich(s) {
+  return s.split(/(\$\$[^$]+\$\$|\$[^$]+\$)/g).map((p) => {
+    if (p.startsWith("$$")) return tex(r`\displaystyle ` + p.slice(2, -2));
+    if (p.startsWith("$") && p.length > 1) return tex(p.slice(1, -1));
+    return p;
+  }).join("");
+}
+function div(parent, cls = "") { const e = document.createElement("div"); if (cls) e.className = cls; parent.appendChild(e); return e; }
+function S(parent, tag, attrs = {}) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+}
+function setA(e, attrs) { for (const k in attrs) e.setAttribute(k, attrs[k]); }
+const pts = (arr) => arr.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+
+/* ---------- scenes ---------- */
+const SCENES = [];
+let T0 = 0;
+function scene(dur, chapter, build) {
+  const s = { a: T0, b: T0 + dur, dur, chapter, items: [], root: div(stage, "scene") };
+  T0 += dur;
+  SCENES.push(s);
+  s.update = build(s) || (() => {});
+  return s;
+}
+// Place a block of text/math. Times are seconds from the scene start.
+function put(s, html, o = {}) {
+  const e = div(s.root, "item" + (o.cls ? " " + o.cls : "") + (o.w ? " wrap" : ""));
+  e.innerHTML = o.raw ? html : rich(html);
+  e.style.left = (o.x ?? 0) + "px";
+  e.style.top = (o.y ?? 0) + "px";
+  e.style.fontSize = (o.size ?? 40) + "px";
+  if (o.color) e.style.color = o.color;
+  if (o.weight) e.style.fontWeight = o.weight;
+  if (o.w) e.style.width = o.w + "px";
+  if (o.align) e.style.textAlign = o.align;
+  if (o.box) { e.classList.add("box"); e.style.borderColor = o.box; e.style.background = o.box + "1c"; }
+  s.items.push({ e, at: o.at ?? 0, out: o.out ?? Infinity, center: !!o.center, middle: !!o.middle, rise: o.rise ?? 26, pop: !!o.box });
+  return e;
+}
+// Fade-only timing for SVG elements and groups
+function timed(s, e, at, out = Infinity) { s.items.push({ e, at, out, svg: true }); return e; }
+function head(s, kicker, title, color = C.mint) {
+  put(s, kicker, { x: 110, y: 52, cls: "kicker", size: 26, color, at: 0.05, rise: 10 });
+  put(s, title, { x: 110, y: 86, cls: "title", size: 56, weight: 800, at: 0.15, rise: 14 });
+}
+function svgIn(s, x, y, w, h) {
+  const e = document.createElementNS(NS, "svg");
+  setA(e, { width: w, height: h, viewBox: `0 0 ${w} ${h}` });
+  e.style.cssText = `position:absolute;left:${x}px;top:${y}px;overflow:visible`;
+  s.root.appendChild(e);
+  const defs = S(e, "defs");
+  for (const [name, col] of [["ah", C.line], ["ahy", C.yellow], ["ahm", C.muted]]) {
+    const m = S(defs, "marker", { id: `${name}-${s.a}-${x}`, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" });
+    S(m, "path", { d: "M0 0 10 5 0 10z", fill: col });
+  }
+  e.mk = (name) => `url(#${name}-${s.a}-${x})`;
+  return e;
+}
+function line(p, x1, y1, x2, y2, a = {}) { return S(p, "line", { x1, y1, x2, y2, stroke: C.line, "stroke-width": 2, ...a }); }
+function txt(p, x, y, str, a = {}) {
+  const e = S(p, "text", { x, y, fill: C.text, "font-size": 30, "text-anchor": "middle", ...a });
+  e.textContent = str;
+  return e;
+}
+// polyline along a circle arc from angle a0 to a1 (math orientation)
+function arcPts(cx, cy, R, a0, a1, n = 64) {
+  const out = [];
+  for (let i = 0; i <= n; i++) { const a = lerp(a0, a1, i / n); out.push([cx + R * Math.cos(a), cy - R * Math.sin(a)]); }
+  return out;
+}
+
+/* Unit circle with axes. Returns the mapping P(x, y) to SVG coordinates. */
+function unitCircle(svg, cx, cy, R, { ticks = true } = {}) {
+  const P = (x, y) => [cx + R * x, cy - R * y];
+  line(svg, cx - R - 70, cy, cx + R + 80, cy, { "marker-end": svg.mk("ah") });
+  line(svg, cx, cy + R + 60, cx, cy - R - 80, { "marker-end": svg.mk("ah") });
+  S(svg, "circle", { cx, cy, r: R, fill: "none", stroke: C.text, "stroke-width": 3.5 });
+  txt(svg, cx + R + 80, cy + 40, "x", { "font-style": "italic", fill: C.muted });
+  txt(svg, cx - 30, cy - R - 70, "y", { "font-style": "italic", fill: C.muted });
+  txt(svg, cx - 24, cy + 36, "O", { "font-style": "italic", fill: C.muted });
+  if (ticks) {
+    txt(svg, cx + R + 22, cy + 36, "1", { fill: C.muted, "font-size": 26 });
+    txt(svg, cx - R - 30, cy + 36, "−1", { fill: C.muted, "font-size": 26 });
+    txt(svg, cx - 22, cy - R - 12, "1", { fill: C.muted, "font-size": 26 });
+    txt(svg, cx - 30, cy + R + 34, "−1", { fill: C.muted, "font-size": 26 });
+  }
+  return P;
+}
+/* A point M on the unit circle with its radius, angle mark and projections. */
+function circlePoint(svg, cx, cy, R, o = {}) {
+  const g = S(svg, "g");
+  const tri = S(g, "polygon", { fill: C.blue, opacity: 0 });
+  const dv = line(g, 0, 0, 0, 0, { stroke: C.muted, "stroke-dasharray": "8 8" });
+  const dh = line(g, 0, 0, 0, 0, { stroke: C.muted, "stroke-dasharray": "8 8" });
+  const cosL = line(g, 0, 0, 0, 0, { stroke: C.blue, "stroke-width": 9, "stroke-linecap": "round" });
+  const sinL = line(g, 0, 0, 0, 0, { stroke: C.pink, "stroke-width": 9, "stroke-linecap": "round" });
+  const rad = line(g, 0, 0, 0, 0, { stroke: C.text, "stroke-width": 4 });
+  const ang = S(g, "polyline", { fill: "none", stroke: C.yellow, "stroke-width": 4 });
+  const angT = txt(g, 0, 0, "α", { fill: C.yellow, "font-style": "italic", "font-size": 34 });
+  const dot = S(g, "circle", { r: 11, fill: o.color || C.yellow });
+  const lab = txt(g, 0, 0, o.label || "M", { "font-style": "italic", "font-size": 34 });
+  const cosT = txt(g, 0, 0, "cos α", { fill: C.blue, "font-size": 30 });
+  const sinT = txt(g, 0, 0, "sin α", { fill: C.pink, "font-size": 30, "text-anchor": "end" });
+  return {
+    g, tri,
+    set(theta, opt = {}) {
+      const x = Math.cos(theta), y = Math.sin(theta);
+      const M = [cx + R * x, cy - R * y];
+      setA(dv, { x1: M[0], y1: M[1], x2: M[0], y2: cy });
+      setA(dh, { x1: M[0], y1: M[1], x2: cx, y2: M[1] });
+      setA(cosL, { x1: cx, y1: cy, x2: M[0], y2: cy });
+      setA(sinL, { x1: cx, y1: cy, x2: cx, y2: M[1] });
+      setA(rad, { x1: cx, y1: cy, x2: M[0], y2: M[1] });
+      setA(tri, { points: pts([[cx, cy], [M[0], cy], M]) });
+      const th = ((theta % (2 * PI)) + 2 * PI) % (2 * PI);
+      setA(ang, { points: pts(arcPts(cx, cy, 62, 0, th, 40)) });
+      setA(angT, { x: cx + 96 * Math.cos(th / 2), y: cy - 96 * Math.sin(th / 2) + 12 });
+      setA(dot, { cx: M[0], cy: M[1] });
+      setA(lab, { x: M[0] + 34 * x + (x >= 0 ? 10 : -10), y: M[1] - 34 * y + 10 });
+      setA(cosT, { x: cx + (R * x) / 2, y: cy + (y >= 0 ? 44 : -22) });
+      setA(sinT, { x: cx + (x >= 0 ? -16 : 110), y: cy - (R * y) / 2 + 10 });
+      const proj = opt.proj ?? 1;
+      for (const e of [dv, dh, cosL, sinL, cosT, sinT]) e.style.opacity = proj;
+      angT.style.opacity = ang.style.opacity = opt.angle ?? 1;
+    },
+  };
+}
+
+/* ======================================================================
+   0. Title
+   ====================================================================== */
+scene(5, "", (s) => {
+  const svg = svgIn(s, 0, 0, W, H);
+  const wave = S(svg, "polyline", { fill: "none", stroke: C.mint, "stroke-width": 5, opacity: 0.35 });
+  const wave2 = S(svg, "polyline", { fill: "none", stroke: C.lilac, "stroke-width": 4, opacity: 0.25 });
+  put(s, "ĐỀ CƯƠNG ÔN TẬP · TOÁN 11", { x: 960, y: 300, center: true, cls: "kicker", color: C.mint, at: 0.1, size: 32 });
+  put(s, "Lượng giác & Dãy số", { x: 960, y: 350, center: true, size: 120, weight: 800, at: 0.35 });
+  put(s, "Tóm tắt công thức bằng hình ảnh", { x: 960, y: 525, center: true, size: 44, color: C.muted, at: 0.9 });
+  return (lt) => {
+    const p = ease(seg(lt, 0, 3.2));
+    const a = [], b = [];
+    for (let x = 0; x <= W * p; x += 8) {
+      a.push([x, 800 + 90 * Math.sin(x / 150 - lt * 1.4)]);
+      b.push([x, 800 + 90 * Math.cos(x / 150 - lt * 1.4)]);
+    }
+    setA(wave, { points: pts(a) });
+    setA(wave2, { points: pts(b) });
+  };
+});
+
+/* ======================================================================
+   1. Radian and arc length
+   ====================================================================== */
+scene(19, "Radian", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Radian và độ dài cung");
+  const svg = svgIn(s, 60, 170, 860, 860);
+  const cx = 430, cy = 450, R = 290;
+  const P = unitCircle(svg, cx, cy, R, { ticks: false });
+  const arc = S(svg, "polyline", { fill: "none", stroke: C.yellow, "stroke-width": 9, "stroke-linecap": "round" });
+  const bend = S(svg, "polyline", { fill: "none", stroke: C.yellow, "stroke-width": 9, "stroke-linecap": "round" });
+  const rA = line(svg, cx, cy, cx + R, cy, { stroke: C.mint, "stroke-width": 6 });
+  const rAT = txt(svg, cx + R / 2, cy - 18, "R", { fill: C.mint, "font-style": "italic", "font-size": 38 });
+  const rM = line(svg, cx, cy, cx, cy, { stroke: C.text, "stroke-width": 4 });
+  const mark = S(svg, "polyline", { fill: "none", stroke: C.orange, "stroke-width": 4 });
+  const markT = txt(svg, 0, 0, "", { fill: C.orange, "font-size": 32 });
+  const arcT = txt(svg, 0, 0, "", { fill: C.yellow, "font-size": 40, "font-style": "italic" });
+  const M = S(svg, "circle", { r: 10, fill: C.yellow });
+  const read = put(s, "", { x: 490, y: 960, center: true, size: 40, at: 2.0 });
+
+  put(s, "Góc ở tâm chắn cung có độ dài <b>bằng bán kính</b> gọi là góc <b>1 radian</b>.", { x: 1000, y: 210, w: 840, size: 38, at: 2.6 });
+  put(s, "Nửa đường tròn: cung dài $\\pi R$, góc ở tâm $180^\\circ$.", { x: 1000, y: 350, size: 38, at: 9.6 });
+  put(s, r`$180^\circ = \pi\ \text{rad}$`, { x: 1000, y: 430, size: 62, box: C.yellow, at: 10.4 });
+  put(s, r`$\Rightarrow\ 1^\circ = \dfrac{\pi}{180}\ \text{rad},\quad 1\ \text{rad} = \Big(\dfrac{180}{\pi}\Big)^{\circ} \approx 57{,}3^\circ$`, { x: 1000, y: 570, size: 36, at: 11.6 });
+  put(s, r`Độ dài cung: $\ l = R\,|\alpha|$`, { x: 1000, y: 690, size: 54, box: C.mint, at: 13.0 });
+  put(s, r`$R$: bán kính · $\alpha$: góc ở tâm tính bằng <b>radian</b>.<br><span style="color:#ffa45c">Đang dùng độ → đổi sang radian trước!</span>`, { x: 1000, y: 810, w: 840, size: 32, color: C.muted, at: 14.0 });
+  put(s, r`VD: $R = 2,\ \alpha = 60^\circ = \dfrac{\pi}{3}\ \Rightarrow\ l = 2\cdot\dfrac{\pi}{3} = \dfrac{2\pi}{3} \approx 2{,}09$`, { x: 1000, y: 930, size: 34, at: 16.2 });
+
+  return (lt) => {
+    const bendM = easeIO(seg(lt, 2.4, 4.6));
+    let al;
+    if (lt < 6) al = 1;
+    else if (lt < 14.5) al = lerp(1, PI, easeIO(seg(lt, 6, 9.5)));
+    else al = lerp(PI, PI / 3, easeIO(seg(lt, 14.5, 16)));
+    // the radius-long segment bends onto the circle
+    const seq = [];
+    for (let i = 0; i <= 50; i++) {
+      const u = i / 50;
+      const straight = P(1, u);
+      const curved = P(Math.cos(u), Math.sin(u));
+      seq.push([lerp(straight[0], curved[0], bendM), lerp(straight[1], curved[1], bendM)]);
+    }
+    setA(bend, { points: pts(seq) });
+    bend.style.opacity = lt < 1.4 ? 0 : lt < 4.8 ? ease(seg(lt, 1.4, 1.9)) : 0;
+    setA(arc, { points: pts(arcPts(cx, cy, R, 0, al)) });
+    arc.style.opacity = lt < 4.6 ? 0 : 1;
+    const Mx = P(Math.cos(al), Math.sin(al));
+    setA(rM, { x2: Mx[0], y2: Mx[1] });
+    setA(M, { cx: Mx[0], cy: Mx[1] });
+    rM.style.opacity = M.style.opacity = ease(seg(lt, 4.6, 5.0));
+    rAT.style.opacity = rA.style.opacity = ease(seg(lt, 0.4, 0.9));
+    setA(mark, { points: pts(arcPts(cx, cy, 70, 0, al, 30)) });
+    mark.style.opacity = ease(seg(lt, 4.8, 5.2));
+    const mid = al / 2;
+    setA(markT, { x: cx + 118 * Math.cos(mid), y: cy - 118 * Math.sin(mid) + 10 });
+    markT.textContent = lt < 6 ? "1 rad" : "α";
+    markT.style.opacity = mark.style.opacity;
+    // arc label: R (1 rad), then πR, then l
+    const lbl = lt < 6 ? "R" : lt < 9.4 ? "" : lt < 14.5 ? "πR" : "l";
+    arcT.textContent = lbl;
+    setA(arcT, { x: cx + (R + 48) * Math.cos(mid), y: cy - (R + 48) * Math.sin(mid) + 12 });
+    arcT.style.opacity = lt < 4.6 ? 0 : 1;
+    // live read-out
+    const deg = (al * 180) / PI;
+    let v;
+    if (Math.abs(al - 1) < 1e-3) v = r`\alpha = 1\ \text{rad} \approx 57{,}3^\circ`;
+    else if (Math.abs(al - PI) < 1e-3) v = r`\alpha = \pi\ \text{rad} = 180^\circ`;
+    else if (Math.abs(al - PI / 3) < 1e-3) v = r`\alpha = \tfrac{\pi}{3}\ \text{rad} = 60^\circ`;
+    else v = r`\alpha \approx ` + fmt(al) + r`\ \text{rad} \approx ` + Math.round(deg) + r`^\circ`;
+    read.innerHTML = tex(r`\color{#ffd166}` + v);
+  };
+});
+
+/* ======================================================================
+   2. Trigonometric values on the unit circle
+   ====================================================================== */
+scene(19, "Giá trị lượng giác", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Giá trị lượng giác trên đường tròn");
+  const svg = svgIn(s, 60, 170, 860, 860);
+  const cx = 430, cy = 450, R = 290;
+  unitCircle(svg, cx, cy, R);
+  const M = circlePoint(svg, cx, cy, R);
+  const right = S(svg, "polyline", { fill: "none", stroke: C.text, "stroke-width": 2.5 });
+  const read = put(s, "", { x: 490, y: 960, center: true, size: 36, at: 1.5 });
+
+  put(s, r`Điểm $M$ trên đường tròn lượng giác ứng với góc $\alpha$:`, { x: 1000, y: 200, size: 36, at: 0.8 });
+  put(s, r`$\color{#6cc0ff}\cos\alpha = x_M$ <span class="muted">(hoành độ)</span>`, { x: 1000, y: 310, size: 46, at: 1.8 });
+  put(s, r`$\color{#ff7d99}\sin\alpha = y_M$ <span class="muted">(tung độ)</span>`, { x: 1000, y: 385, size: 46, at: 2.8 });
+  put(s, r`$\tan\alpha = \dfrac{\sin\alpha}{\cos\alpha}\qquad \cot\alpha = \dfrac{\cos\alpha}{\sin\alpha}$`, { x: 1000, y: 470, size: 44, box: C.mint, at: 4.4 });
+  put(s, r`$-1\le\sin\alpha\le1,\quad -1\le\cos\alpha\le1$`, { x: 1000, y: 600, size: 34, color: C.muted, at: 6.0 });
+  put(s, r`Tam giác vuông $OHM$: $\ OH^2 + HM^2 = OM^2 = 1$`, { x: 1000, y: 690, size: 36, at: 11.0 });
+  put(s, r`$\sin^2\alpha + \cos^2\alpha = 1$`, { x: 1000, y: 765, size: 62, box: C.yellow, at: 12.5 });
+  put(s, r`Hệ quả: $1+\tan^2\alpha = \dfrac{1}{\cos^2\alpha},\quad 1+\cot^2\alpha = \dfrac{1}{\sin^2\alpha}$<br>$\tan\alpha\cdot\cot\alpha = 1$`, { x: 1000, y: 880, size: 32, color: C.muted, at: 14.6 });
+  const H = txt(svg, 0, 0, "H", { "font-style": "italic", "font-size": 30, fill: C.muted });
+  timed(s, H, 10.8);
+  timed(s, right, 10.8);
+  timed(s, M.tri, 10.8);
+
+  return (lt) => {
+    const th = 0.7 + 2 * PI * easeIO(seg(lt, 2, 10));
+    M.set(th);
+    M.tri.setAttribute("fill-opacity", 0.18);
+    const x = Math.cos(th), y = Math.sin(th);
+    const hx = cx + R * x;
+    setA(H, { x: hx + 6, y: cy + 40 });
+    const sx = x >= 0 ? -1 : 1, sy = y >= 0 ? -1 : 1;
+    setA(right, { points: pts([[hx + 22 * sx, cy], [hx + 22 * sx, cy + 22 * sy], [hx, cy + 22 * sy]]) });
+    const deg = Math.round((((th * 180) / PI) % 360 + 360) % 360);
+    read.innerHTML = tex(r`\alpha \approx ${deg}^\circ:\quad \color{#6cc0ff}\cos\alpha \approx ${fmt(x)}\quad \color{#ff7d99}\sin\alpha \approx ${fmt(y)}`);
+  };
+});
+
+/* ======================================================================
+   3. When are sin, cos equal to 0, 1, -1
+   ====================================================================== */
+function specialPoints(s, svg, cx, cy, R) {
+  const at = { A: 0, B: PI / 2, "A'": PI, "B'": -PI / 2 };
+  const labels = { A: r`0`, B: r`\tfrac{\pi}{2}`, "A'": r`\pi`, "B'": r`-\tfrac{\pi}{2}` };
+  const off = { A: [34, -46], B: [26, -62], "A'": [-60, -46], "B'": [26, 18] };
+  const dots = {};
+  for (const k in at) {
+    const x = cx + R * Math.cos(at[k]), y = cy - R * Math.sin(at[k]);
+    const halo = S(svg, "circle", { cx: x, cy: y, r: 30, fill: C.yellow, opacity: 0 });
+    const d = S(svg, "circle", { cx: x, cy: y, r: 11, fill: C.text });
+    dots[k] = { halo, d, x, y };
+    put(s, `$${labels[k]}$`, { x: 60 + x + off[k][0], y: 170 + y + off[k][1], size: 38, color: C.text, at: 0.5 });
+  }
+  return dots;
+}
+scene(16, "sin, cos đặc biệt", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Khi nào sin, cos bằng 0, 1, −1?");
+  const svg = svgIn(s, 60, 170, 860, 860);
+  const cx = 430, cy = 450, R = 290;
+  unitCircle(svg, cx, cy, R, { ticks: false });
+  const dots = specialPoints(s, svg, cx, cy, R);
+  const rows = [
+    [r`$\sin\alpha = 1 \iff \alpha = \dfrac{\pi}{2} + k2\pi$`, ["B"], C.pink],
+    [r`$\sin\alpha = -1 \iff \alpha = -\dfrac{\pi}{2} + k2\pi$`, ["B'"], C.pink],
+    [r`$\sin\alpha = 0 \iff \alpha = k\pi$`, ["A", "A'"], C.pink],
+    [r`$\cos\alpha = 1 \iff \alpha = k2\pi$`, ["A"], C.blue],
+    [r`$\cos\alpha = -1 \iff \alpha = \pi + k2\pi$`, ["A'"], C.blue],
+    [r`$\cos\alpha = 0 \iff \alpha = \dfrac{\pi}{2} + k\pi$`, ["B", "B'"], C.blue],
+  ];
+  put(s, "sin = tung độ: đọc trên trục $Oy$", { x: 1000, y: 200, size: 32, color: C.pink, at: 1.0 });
+  put(s, "cos = hoành độ: đọc trên trục $Ox$", { x: 1000, y: 535, size: 32, color: C.blue, at: 6.6 });
+  const T = rows.map((_, i) => 1.5 + 1.9 * i);
+  const ys = [258, 345, 432, 593, 680, 767];
+  rows.forEach(([str, , col], i) => put(s, str, { x: 1030, y: ys[i], size: 40, at: T[i] }));
+  put(s, r`$(k\in\mathbb{Z})$ · Mẹo: $\sin\alpha = 0$ khi $M$ nằm trên trục hoành; $\cos\alpha = 0$ khi $M$ nằm trên trục tung.`, { x: 1000, y: 880, w: 850, size: 30, color: C.muted, at: 13.0 });
+  // axis highlights for the "= 0" rows
+  const ox = line(svg, cx - R - 40, cy, cx + R + 40, cy, { stroke: C.pink, "stroke-width": 6, opacity: 0 });
+  const oy = line(svg, cx, cy - R - 40, cx, cy + R + 40, { stroke: C.blue, "stroke-width": 6, opacity: 0 });
+  return (lt) => {
+    let active = -1;
+    T.forEach((t0, i) => { if (lt >= t0 && lt < (T[i + 1] ?? 13)) active = i; });
+    for (const k in dots) {
+      const on = active >= 0 && rows[active][1].includes(k);
+      dots[k].halo.setAttribute("opacity", on ? 0.35 + 0.1 * Math.sin(lt * 8) : 0);
+      dots[k].halo.setAttribute("fill", on ? rows[active][2] : C.yellow);
+      dots[k].d.setAttribute("fill", on ? rows[active][2] : C.text);
+      dots[k].d.setAttribute("r", on ? 15 : 11);
+    }
+    ox.setAttribute("opacity", active === 2 ? 0.55 : 0);
+    oy.setAttribute("opacity", active === 5 ? 0.55 : 0);
+  };
+});
+
+/* ======================================================================
+   4. Domains of tan and cot
+   ====================================================================== */
+scene(13, "ĐKXĐ tan, cot", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Điều kiện xác định của tan, cot");
+  const svg = svgIn(s, 60, 170, 860, 860);
+  const cx = 430, cy = 450, R = 290;
+  unitCircle(svg, cx, cy, R, { ticks: false });
+  const dots = specialPoints(s, svg, cx, cy, R);
+  const cross = (k, col) => {
+    const { x, y } = dots[k];
+    const g = S(svg, "g", { stroke: col, "stroke-width": 8, "stroke-linecap": "round" });
+    line(g, x - 24, y - 24, x + 24, y + 24, { stroke: col, "stroke-width": 8 });
+    line(g, x - 24, y + 24, x + 24, y - 24, { stroke: col, "stroke-width": 8 });
+    return g;
+  };
+  const tanX = [cross("B", C.mint), cross("B'", C.mint)];
+  const cotX = [cross("A", C.lilac), cross("A'", C.lilac)];
+  put(s, r`$\color{#5fe3c0}\tan\alpha = \dfrac{\sin\alpha}{\cos\alpha}$ xác định $\iff \cos\alpha\ne 0$`, { x: 1000, y: 190, size: 40, at: 1.0 });
+  put(s, r`$\alpha \ne \dfrac{\pi}{2} + k\pi$`, { x: 1000, y: 330, size: 54, box: C.mint, at: 2.5 });
+  put(s, "Bỏ 2 điểm trên trục tung (nơi $\\cos\\alpha = 0$).", { x: 1000, y: 470, size: 32, color: C.muted, at: 3.8 });
+  put(s, r`$\color{#b9a6ff}\cot\alpha = \dfrac{\cos\alpha}{\sin\alpha}$ xác định $\iff \sin\alpha\ne 0$`, { x: 1000, y: 550, size: 40, at: 6.5 });
+  put(s, r`$\alpha \ne k\pi$`, { x: 1000, y: 690, size: 54, box: C.lilac, at: 8.0 });
+  put(s, "Bỏ 2 điểm trên trục hoành (nơi $\\sin\\alpha = 0$).", { x: 1000, y: 815, size: 32, color: C.muted, at: 9.3 });
+  put(s, r`Nhớ: <b>mẫu số khác 0</b>, với $k\in\mathbb{Z}$.`, { x: 1000, y: 910, size: 38, color: C.yellow, at: 10.8 });
+  return (lt) => {
+    const a = ease(seg(lt, 2.5, 3.0)), b = ease(seg(lt, 8.0, 8.5));
+    tanX.forEach((g) => g.setAttribute("opacity", a * (1 - 0.6 * b)));
+    cotX.forEach((g) => g.setAttribute("opacity", b));
+  };
+});
+
+/* ======================================================================
+   5. Related angles: opposite, supplementary, complementary, differ by pi
+   ====================================================================== */
+scene(44, "Góc liên quan", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Giá trị lượng giác của các góc liên quan");
+  const svg = svgIn(s, 60, 170, 860, 860);
+  const cx = 430, cy = 450, R = 290, al = 0.56;
+  unitCircle(svg, cx, cy, R, { ticks: false });
+  const axis = line(svg, 0, 0, 0, 0, { stroke: C.yellow, "stroke-width": 5, "stroke-dasharray": "14 10", opacity: 0 });
+  const path = line(svg, 0, 0, 0, 0, { stroke: C.muted, "stroke-width": 3, "stroke-dasharray": "4 8" });
+  const M = circlePoint(svg, cx, cy, R);
+  const g2 = S(svg, "g");
+  const c2 = line(g2, cx, cy, cx, cy, { stroke: C.blue, "stroke-width": 9, "stroke-linecap": "round", opacity: 0.85 });
+  const s2 = line(g2, cx, cy, cx, cy, { stroke: C.pink, "stroke-width": 9, "stroke-linecap": "round", opacity: 0.85 });
+  const d2v = line(g2, 0, 0, 0, 0, { stroke: C.muted, "stroke-dasharray": "8 8" });
+  const d2h = line(g2, 0, 0, 0, 0, { stroke: C.muted, "stroke-dasharray": "8 8" });
+  const r2 = line(g2, cx, cy, cx, cy, { stroke: C.lilac, "stroke-width": 4 });
+  const Mp = S(g2, "circle", { r: 12, fill: C.lilac });
+  const MpT = txt(g2, 0, 0, "M'", { "font-style": "italic", "font-size": 34, fill: C.lilac });
+  const Odot = S(svg, "circle", { cx, cy, r: 12, fill: C.yellow, opacity: 0 });
+  timed(s, svg, 0, 38.5);
+
+  const Y = "#ffd166", G = "#5fe3c0";
+  const phases = [
+    { t: 0.5, name: r`① Góc đối nhau: $\alpha$ và $-\alpha$`, sym: r`$M'$ đối xứng với $M$ qua <b>trục hoành</b> $Ox$`, target: -al, tag: "-α", axis: "ox", chip: "COS ĐỐI: cos giữ nguyên, còn lại đổi dấu",
+      f: [[r`\sin(-\alpha)`, r`-\sin\alpha`, 0], [r`\cos(-\alpha)`, r`\cos\alpha`, 1], [r`\tan(-\alpha)`, r`-\tan\alpha`, 0], [r`\cot(-\alpha)`, r`-\cot\alpha`, 0]] },
+    { t: 10, name: r`② Góc bù nhau: $\alpha$ và $\pi-\alpha$`, sym: r`$M'$ đối xứng với $M$ qua <b>trục tung</b> $Oy$`, target: PI - al, tag: "π − α", axis: "oy", chip: "SIN BÙ: sin giữ nguyên, còn lại đổi dấu",
+      f: [[r`\sin(\pi-\alpha)`, r`\sin\alpha`, 1], [r`\cos(\pi-\alpha)`, r`-\cos\alpha`, 0], [r`\tan(\pi-\alpha)`, r`-\tan\alpha`, 0], [r`\cot(\pi-\alpha)`, r`-\cot\alpha`, 0]] },
+    { t: 19.5, name: r`③ Góc phụ nhau: $\alpha$ và $\dfrac{\pi}{2}-\alpha$`, sym: r`$M'$ đối xứng với $M$ qua <b>đường thẳng</b> $y = x$`, target: PI / 2 - al, tag: "π/2 − α", axis: "yx", chip: "PHỤ CHÉO: sin ↔ cos, tan ↔ cot",
+      f: [[r`\sin\left(\tfrac{\pi}{2}-\alpha\right)`, r`\cos\alpha`, 2], [r`\cos\left(\tfrac{\pi}{2}-\alpha\right)`, r`\sin\alpha`, 2], [r`\tan\left(\tfrac{\pi}{2}-\alpha\right)`, r`\cot\alpha`, 2], [r`\cot\left(\tfrac{\pi}{2}-\alpha\right)`, r`\tan\alpha`, 2]] },
+    { t: 29, name: r`④ Hơn kém $\pi$: $\alpha$ và $\pi+\alpha$`, sym: r`$M'$ đối xứng với $M$ qua <b>gốc tọa độ</b> $O$`, target: PI + al, tag: "π + α", axis: "o", chip: "HƠN KÉM π: tan, cot giữ nguyên, sin, cos đổi dấu",
+      f: [[r`\sin(\pi+\alpha)`, r`-\sin\alpha`, 0], [r`\cos(\pi+\alpha)`, r`-\cos\alpha`, 0], [r`\tan(\pi+\alpha)`, r`\tan\alpha`, 1], [r`\cot(\pi+\alpha)`, r`\cot\alpha`, 1]] },
+  ];
+  phases.forEach((p) => {
+    const end = p.t + 9.5;
+    put(s, p.name, { x: 1000, y: 200, size: 44, weight: 800, color: C.yellow, at: p.t + 0.1, out: end });
+    put(s, p.sym, { x: 1000, y: 290, size: 34, color: C.muted, at: p.t + 0.6, out: end });
+    const rowsTex = p.f.map(([l, rr, k]) => {
+      const col = k === 1 ? Y : k === 2 ? G : "#eef2fa";
+      return r`\color{${col}}${l} &\color{${col}}= ${rr}`;
+    }).join(r`\\[4pt]`);
+    put(s, tex(r`\begin{aligned}` + rowsTex + r`\end{aligned}`, true), { raw: true, x: 1000, y: 360, size: 44, at: p.t + 3.0, out: end });
+    put(s, p.chip, { x: 1000, y: 820, size: 34, box: C.yellow, weight: 800, at: p.t + 5.2, out: end });
+  });
+  // closing mnemonic card
+  put(s, "Câu thần chú", { x: 960, y: 250, center: true, size: 44, color: C.muted, at: 38.7 });
+  const words = [["Cos đối", C.blue], ["Sin bù", C.pink], ["Phụ chéo", C.mint], ["Hơn kém π: tan, cot", C.lilac]];
+  words.forEach(([w, col], i) => put(s, w, { x: 960, y: 340 + i * 110, center: true, size: 72, weight: 800, color: col, at: 39.0 + i * 0.45 }));
+  put(s, "Cái được nhắc tên thì giữ nguyên, còn lại đổi dấu. Phụ thì đổi chéo.", { x: 960, y: 820, center: true, size: 36, color: C.muted, at: 41.0 });
+
+  return (lt) => {
+    const k = phases.reduce((acc, p, i) => (lt >= p.t ? i : acc), 0);
+    const p = phases[k];
+    const m = easeIO(seg(lt, p.t + 0.9, p.t + 2.5));
+    M.set(al, { proj: 0.5 });
+    const A = [cx + R * Math.cos(al), cy - R * Math.sin(al)];
+    const B = [cx + R * Math.cos(p.target), cy - R * Math.sin(p.target)];
+    const Q = [lerp(A[0], B[0], m), lerp(A[1], B[1], m)];
+    setA(Mp, { cx: Q[0], cy: Q[1] });
+    setA(r2, { x2: Q[0], y2: Q[1] });
+    setA(path, { x1: A[0], y1: A[1], x2: Q[0], y2: Q[1] });
+    const ux = Math.cos(p.target), uy = Math.sin(p.target);
+    setA(MpT, { x: Q[0] + (ux >= 0 ? 42 : -48), y: Q[1] - 30 * uy + 12 });
+    MpT.textContent = `M' (${p.tag})`;
+    MpT.setAttribute("text-anchor", ux >= 0 ? "start" : "end");
+    const showP = ease(seg(lt, p.t + 2.5, p.t + 3.0));
+    setA(c2, { x2: B[0], y2: cy });
+    setA(s2, { x2: cx, y2: B[1] });
+    setA(d2v, { x1: B[0], y1: B[1], x2: B[0], y2: cy });
+    setA(d2h, { x1: B[0], y1: B[1], x2: cx, y2: B[1] });
+    for (const e of [c2, s2, d2v, d2h]) e.style.opacity = showP;
+    const fadeIn = ease(seg(lt, p.t + 0.3, p.t + 0.8)) * (1 - ease(seg(lt, p.t + 9.1, p.t + 9.5)));
+    g2.style.opacity = fadeIn;
+    path.style.opacity = fadeIn;
+    // symmetry element
+    const L = R + 60;
+    if (p.axis === "ox") setA(axis, { x1: cx - L, y1: cy, x2: cx + L, y2: cy });
+    if (p.axis === "oy") setA(axis, { x1: cx, y1: cy - L, x2: cx, y2: cy + L });
+    if (p.axis === "yx") setA(axis, { x1: cx - L * 0.75, y1: cy + L * 0.75, x2: cx + L * 0.75, y2: cy - L * 0.75 });
+    axis.setAttribute("opacity", p.axis === "o" ? 0 : fadeIn * 0.9);
+    Odot.setAttribute("opacity", p.axis === "o" ? fadeIn : 0);
+  };
+});
+
+/* ======================================================================
+   6. Double-angle formulas
+   ====================================================================== */
+scene(16, "Nhân đôi", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Công thức nhân đôi");
+  const svg = svgIn(s, 30, 170, 760, 760);
+  const cx = 380, cy = 400, R = 250;
+  unitCircle(svg, cx, cy, R, { ticks: false });
+  const ra = line(svg, cx, cy, cx, cy, { stroke: C.yellow, "stroke-width": 4 });
+  const r2 = line(svg, cx, cy, cx, cy, { stroke: C.mint, "stroke-width": 4 });
+  const s2 = line(svg, cx, cy, cx, cy, { stroke: C.pink, "stroke-width": 9, "stroke-linecap": "round" });
+  const d2 = line(svg, 0, 0, 0, 0, { stroke: C.muted, "stroke-dasharray": "8 8" });
+  const pa = S(svg, "circle", { r: 11, fill: C.yellow });
+  const p2 = S(svg, "circle", { r: 11, fill: C.mint });
+  const ta = txt(svg, 0, 0, "a", { fill: C.yellow, "font-style": "italic", "font-size": 34 });
+  const t2 = txt(svg, 0, 0, "2a", { fill: C.mint, "font-style": "italic", "font-size": 34 });
+  const read = put(s, "", { x: 410, y: 880, center: true, size: 36, at: 1.0 });
+  const read2 = put(s, "", { x: 410, y: 940, center: true, size: 36, at: 1.0 });
+
+  put(s, r`$\sin 2a = 2\sin a\cos a$`, { x: 880, y: 200, size: 56, box: C.pink, at: 0.8 });
+  put(s, r`$\cos 2a = \cos^2 a - \sin^2 a$`, { x: 880, y: 320, size: 56, box: C.blue, at: 2.4 });
+  put(s, r`Dùng $\sin^2 a + \cos^2 a = 1$ để viết lại:`, { x: 880, y: 450, size: 36, color: C.muted, at: 4.8 });
+  put(s, r`thay $\sin^2 a = 1 - \cos^2 a\ \Rightarrow\ \cos 2a = 2\cos^2 a - 1$`, { x: 880, y: 520, size: 40, at: 6.0 });
+  put(s, r`thay $\cos^2 a = 1 - \sin^2 a\ \Rightarrow\ \cos 2a = 1 - 2\sin^2 a$`, { x: 880, y: 600, size: 40, at: 8.2 });
+  put(s, r`Hạ bậc: $\cos^2 a = \dfrac{1+\cos 2a}{2},\quad \sin^2 a = \dfrac{1-\cos 2a}{2}$`, { x: 880, y: 700, size: 38, color: C.muted, at: 10.6 });
+  put(s, r`VD: $\sin a = \tfrac35,\ \cos a = \tfrac45 \Rightarrow \sin 2a = 2\cdot\tfrac35\cdot\tfrac45 = \tfrac{24}{25}$`, { x: 880, y: 840, size: 38, at: 12.6 });
+
+  return (lt) => {
+    const a = 0.62 + 0.32 * Math.sin(lt * 0.55);
+    const A = [cx + R * Math.cos(a), cy - R * Math.sin(a)];
+    const B = [cx + R * Math.cos(2 * a), cy - R * Math.sin(2 * a)];
+    setA(ra, { x2: A[0], y2: A[1] }); setA(r2, { x2: B[0], y2: B[1] });
+    setA(pa, { cx: A[0], cy: A[1] }); setA(p2, { cx: B[0], cy: B[1] });
+    setA(s2, { x1: cx, y1: cy, x2: cx, y2: B[1] });
+    setA(d2, { x1: B[0], y1: B[1], x2: cx, y2: B[1] });
+    setA(ta, { x: A[0] + 34, y: A[1] + 8 }); setA(t2, { x: B[0] + (Math.cos(2 * a) >= 0 ? 34 : -40), y: B[1] - 16 });
+    read.innerHTML = tex(r`\color{#ff7d99}\sin 2a \approx ${fmt(Math.sin(2 * a), 3)}`);
+    read2.innerHTML = tex(r`2\sin a\cos a \approx 2\cdot ${fmt(Math.sin(a), 3)}\cdot ${fmt(Math.cos(a), 3)} \approx ${fmt(2 * Math.sin(a) * Math.cos(a), 3)}`);
+  };
+});
+
+/* ======================================================================
+   7. Even and odd functions
+   ====================================================================== */
+function graphKit(svg, x0, y0, w, h, xr, yr) {
+  const X = (x) => x0 + ((x - xr[0]) / (xr[1] - xr[0])) * w;
+  const Y = (y) => y0 + h - ((y - yr[0]) / (yr[1] - yr[0])) * h;
+  return { X, Y };
+}
+function plotPts(f, a, b, X, Y, n = 160) {
+  const out = [];
+  for (let i = 0; i <= n; i++) { const x = lerp(a, b, i / n); out.push([X(x), Y(f(x))]); }
+  return out;
+}
+scene(18, "Chẵn, lẻ", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Hàm số chẵn, hàm số lẻ");
+  const mk = (ox, f, col, label) => {
+    const svg = svgIn(s, ox, 300, 860, 460);
+    const { X, Y } = graphKit(svg, 20, 20, 820, 420, [-7, 7], [-1.7, 1.7]);
+    line(svg, X(-7), Y(0), X(7.1), Y(0), { "marker-end": svg.mk("ah") });
+    const yAx = line(svg, X(0), Y(-1.7), X(0), Y(1.75), { "marker-end": svg.mk("ah") });
+    txt(svg, X(7.1) - 6, Y(0) + 38, "x", { "font-style": "italic", fill: C.muted });
+    txt(svg, X(0) - 24, Y(1.75) + 8, "y", { "font-style": "italic", fill: C.muted });
+    const half = S(svg, "polyline", { fill: "none", stroke: col, "stroke-width": 6, "stroke-linecap": "round" });
+    const mirror = S(svg, "g");
+    const copy = S(mirror, "polyline", { fill: "none", stroke: col, "stroke-width": 6, "stroke-linecap": "round", "stroke-dasharray": "2 0" });
+    return { svg, X, Y, half, mirror, copy, yAx, f };
+  };
+  const E = mk(60, Math.cos, C.blue);
+  const O = mk(1000, Math.sin, C.pink);
+  // even: Oy highlighted as mirror
+  const eAxis = line(E.svg, E.X(0), E.Y(-1.7), E.X(0), E.Y(1.7), { stroke: C.yellow, "stroke-width": 5, "stroke-dasharray": "12 10", opacity: 0 });
+  const ePts = [S(E.svg, "circle", { r: 11, fill: C.yellow, opacity: 0 }), S(E.svg, "circle", { r: 11, fill: C.yellow, opacity: 0 })];
+  const eLink = line(E.svg, 0, 0, 0, 0, { stroke: C.yellow, "stroke-width": 3, "stroke-dasharray": "6 8", opacity: 0 });
+  const oO = S(O.svg, "circle", { cx: O.X(0), cy: O.Y(0), r: 13, fill: C.yellow, opacity: 0 });
+  const oPts = [S(O.svg, "circle", { r: 11, fill: C.yellow, opacity: 0 }), S(O.svg, "circle", { r: 11, fill: C.yellow, opacity: 0 })];
+  const oLink = line(O.svg, 0, 0, 0, 0, { stroke: C.yellow, "stroke-width": 3, "stroke-dasharray": "6 8", opacity: 0 });
+  const eX = [txt(E.svg, 0, 0, "x₀", { "font-style": "italic", fill: C.yellow, opacity: 0 }), txt(E.svg, 0, 0, "−x₀", { "font-style": "italic", fill: C.yellow, opacity: 0 })];
+  const oX = [txt(O.svg, 0, 0, "x₀", { "font-style": "italic", fill: C.yellow, opacity: 0 }), txt(O.svg, 0, 0, "−x₀", { "font-style": "italic", fill: C.yellow, opacity: 0 })];
+
+  put(s, "Hàm số chẵn", { x: 490, y: 210, center: true, size: 46, weight: 800, color: C.blue, at: 0.6 });
+  put(s, r`$f(-x) = f(x)$`, { x: 490, y: 780, center: true, size: 50, box: C.blue, at: 5.8 });
+  put(s, r`Đối xứng qua <b>trục tung</b> · VD: $\cos x,\ x^2$`, { x: 490, y: 890, center: true, size: 34, at: 6.6 });
+  put(s, "Hàm số lẻ", { x: 1430, y: 210, center: true, size: 46, weight: 800, color: C.pink, at: 7.0 });
+  put(s, r`$f(-x) = -f(x)$`, { x: 1430, y: 780, center: true, size: 50, box: C.pink, at: 12.0 });
+  put(s, r`Đối xứng qua <b>gốc tọa độ</b> · VD: $\sin x,\ \tan x,\ x^3$`, { x: 1430, y: 890, center: true, size: 34, at: 12.8 });
+  put(s, r`Cả hai đều cần tập xác định đối xứng: $x\in D\Rightarrow -x\in D$`, { x: 960, y: 975, center: true, size: 32, color: C.muted, at: 14.6 });
+
+  return (lt) => {
+    // even
+    const pe = ease(seg(lt, 1.0, 3.0));
+    setA(E.half, { points: pts(plotPts(Math.cos, 0, 7 * pe + 1e-6, E.X, E.Y)) });
+    setA(E.copy, { points: pts(plotPts(Math.cos, 0, 7, E.X, E.Y)) });
+    const sE = lerp(1, -1, easeIO(seg(lt, 3.6, 5.4)));
+    E.mirror.setAttribute("transform", `translate(${E.X(0)} 0) scale(${sE} 1) translate(${-E.X(0)} 0)`);
+    E.mirror.style.opacity = ease(seg(lt, 3.4, 3.7));
+    eAxis.setAttribute("opacity", ease(seg(lt, 3.2, 3.6)));
+    const x0 = 2.2, ea = ease(seg(lt, 5.6, 6.0));
+    setA(ePts[0], { cx: E.X(x0), cy: E.Y(Math.cos(x0)), opacity: ea });
+    setA(ePts[1], { cx: E.X(-x0), cy: E.Y(Math.cos(x0)), opacity: ea });
+    setA(eLink, { x1: E.X(-x0), y1: E.Y(Math.cos(x0)), x2: E.X(x0), y2: E.Y(Math.cos(x0)), opacity: ea });
+    setA(eX[0], { x: E.X(x0), y: E.Y(0) - 18, opacity: ea }); setA(eX[1], { x: E.X(-x0), y: E.Y(0) - 18, opacity: ea });
+    // odd
+    const po = ease(seg(lt, 7.4, 9.0));
+    setA(O.half, { points: pts(plotPts(Math.sin, 0, 7 * po + 1e-6, O.X, O.Y)) });
+    setA(O.copy, { points: pts(plotPts(Math.sin, 0, 7, O.X, O.Y)) });
+    const rot = 180 * easeIO(seg(lt, 9.6, 11.6));
+    O.mirror.setAttribute("transform", `rotate(${rot} ${O.X(0)} ${O.Y(0)})`);
+    O.mirror.style.opacity = ease(seg(lt, 9.4, 9.7));
+    oO.setAttribute("opacity", ease(seg(lt, 9.2, 9.6)));
+    const x1 = 1.3, oa = ease(seg(lt, 11.8, 12.2));
+    setA(oPts[0], { cx: O.X(x1), cy: O.Y(Math.sin(x1)), opacity: oa });
+    setA(oPts[1], { cx: O.X(-x1), cy: O.Y(-Math.sin(x1)), opacity: oa });
+    setA(oLink, { x1: O.X(-x1), y1: O.Y(-Math.sin(x1)), x2: O.X(x1), y2: O.Y(Math.sin(x1)), opacity: oa });
+    setA(oX[0], { x: O.X(x1), y: O.Y(0) + 40, opacity: oa }); setA(oX[1], { x: O.X(-x1), y: O.Y(0) - 18, opacity: oa });
+  };
+});
+
+/* ======================================================================
+   8. Periodic functions
+   ====================================================================== */
+scene(15, "Tuần hoàn", (s) => {
+  head(s, "PHẦN 1 · LƯỢNG GIÁC", "Hàm số tuần hoàn");
+  put(s, r`Đồ thị lặp lại y hệt sau mỗi đoạn có độ dài $T$.`, { x: 110, y: 195, size: 36, color: C.muted, at: 0.8 });
+  const svg = svgIn(s, 60, 280, 1800, 440);
+  const xr = [-PI - 0.3, 5 * PI + 0.3];
+  const { X, Y } = graphKit(svg, 20, 20, 1760, 400, xr, [-1.6, 1.6]);
+  line(svg, X(xr[0]), Y(0), X(xr[1]) + 10, Y(0), { "marker-end": svg.mk("ah") });
+  line(svg, X(0), Y(-1.6), X(0), Y(1.65), { "marker-end": svg.mk("ah") });
+  [[PI, "π"], [2 * PI, "2π"], [3 * PI, "3π"], [4 * PI, "4π"], [-PI, "−π"]].forEach(([v, l]) => {
+    line(svg, X(v), Y(0) - 8, X(v), Y(0) + 8, { stroke: C.muted });
+    txt(svg, X(v), Y(0) + 44, l, { fill: C.muted, "font-size": 28 });
+  });
+  const band = S(svg, "rect", { x: X(0), y: Y(1.45), width: X(2 * PI) - X(0), height: Y(-1.45) - Y(1.45), fill: C.yellow, opacity: 0, rx: 10 });
+  const full = S(svg, "polyline", { fill: "none", stroke: C.pink, "stroke-width": 5, opacity: 0.8 });
+  const piece = S(svg, "g");
+  S(piece, "polyline", { points: pts(plotPts(Math.sin, 0, 2 * PI, X, Y)), fill: "none", stroke: C.yellow, "stroke-width": 9, "stroke-linecap": "round" });
+  const brace = txt(svg, (X(0) + X(2 * PI)) / 2, Y(1.45) - 14, "T = 2π", { fill: C.yellow, "font-size": 36, opacity: 0 });
+  const x1 = 1.1;
+  const pA = S(svg, "circle", { r: 11, fill: C.mint, opacity: 0 });
+  const pB = S(svg, "circle", { r: 11, fill: C.mint, opacity: 0 });
+  const link = line(svg, 0, 0, 0, 0, { stroke: C.mint, "stroke-width": 3, "stroke-dasharray": "6 8", opacity: 0 });
+  const lA = txt(svg, X(x1), Y(Math.sin(x1)) - 26, "f(x)", { fill: C.mint, "font-style": "italic", opacity: 0 });
+  const lB = txt(svg, X(x1 + 2 * PI), Y(Math.sin(x1)) - 26, "f(x + T)", { fill: C.mint, "font-style": "italic", opacity: 0 });
+
+  put(s, r`Hàm $f$ tuần hoàn nếu có $T>0$ sao cho $\ f(x+T) = f(x),\ \forall x\in D$`, { x: 960, y: 760, center: true, size: 42, box: C.yellow, at: 8.0 });
+  put(s, r`và $x + T \in D$ với mọi $x\in D$.`, { x: 960, y: 865, center: true, size: 34, color: C.muted, at: 8.8 });
+  put(s, r`Chu kì: $\ \sin x,\ \cos x$: $T = 2\pi$ · $\tan x,\ \cot x$: $T = \pi$`, { x: 960, y: 940, center: true, size: 38, at: 10.6 });
+
+  return (lt) => {
+    const p = ease(seg(lt, 0.6, 2.6));
+    setA(full, { points: pts(plotPts(Math.sin, xr[0], lerp(xr[0], xr[1], p), X, Y, 300)) });
+    band.setAttribute("opacity", 0.12 * ease(seg(lt, 2.8, 3.2)));
+    brace.setAttribute("opacity", ease(seg(lt, 3.0, 3.4)));
+    // the highlighted period slides one T to the right, then back
+    const shift = (X(2 * PI) - X(0)) * (easeIO(seg(lt, 3.8, 5.3)) + easeIO(seg(lt, 5.8, 7.2)) - 2 * easeIO(seg(lt, 7.6, 8.6)));
+    piece.setAttribute("transform", `translate(${shift} 0)`);
+    piece.style.opacity = ease(seg(lt, 2.8, 3.2));
+    const a = ease(seg(lt, 9.2, 9.6));
+    setA(pA, { cx: X(x1), cy: Y(Math.sin(x1)), opacity: a });
+    setA(pB, { cx: X(x1 + 2 * PI), cy: Y(Math.sin(x1)), opacity: a });
+    setA(link, { x1: X(x1), y1: Y(Math.sin(x1)), x2: X(x1 + 2 * PI), y2: Y(Math.sin(x1)), opacity: a });
+    lA.setAttribute("opacity", a); lB.setAttribute("opacity", a);
+  };
+});
+
+/* ======================================================================
+   9. Arithmetic sequences
+   ====================================================================== */
+scene(24, "Cấp số cộng", (s) => {
+  head(s, "PHẦN 2 · DÃY SỐ", "Cấp số cộng", C.orange);
+  const svg = svgIn(s, 60, 170, 880, 860);
+  const u = [2, 5, 8, 11, 14], d = 3, n = 5, U = 36, base = 800, bw = 110, x0 = 80, step = 155;
+  line(svg, 40, base, x0 + step * n, base, { stroke: C.line, "stroke-width": 3 });
+  const bars = u.map((v, i) => {
+    const g = S(svg, "g");
+    const blocks = [S(g, "rect", { x: x0 + i * step, width: bw, fill: C.blue, rx: 6 })];
+    for (let j = 0; j < i; j++) blocks.push(S(g, "rect", { x: x0 + i * step, width: bw, fill: C.yellow, rx: 6, stroke: C.bg, "stroke-width": 3 }));
+    return { g, blocks };
+  });
+  const rev = u.map((v, i) => S(svg, "rect", { x: x0 + i * step, width: bw, fill: C.lilac, rx: 6, stroke: C.bg, "stroke-width": 3, opacity: 0 }));
+  const frame = S(svg, "rect", { x: x0 - 16, y: base - 16 * U - 16, width: step * (n - 1) + bw + 32, height: 16 * U + 16, fill: "none", stroke: C.mint, "stroke-width": 4, "stroke-dasharray": "14 10", rx: 12, opacity: 0 });
+  u.forEach((v, i) => {
+    put(s, `$u_${i + 1}$`, { x: 60 + x0 + i * step + bw / 2, y: 170 + base + 12, center: true, size: 34, color: C.muted, at: 1.5 + 0.7 * i });
+    put(s, `$${v}$`, { x: 60 + x0 + i * step + bw / 2, y: 170 + base - v * U - 56, center: true, size: 34, at: 1.8 + 0.7 * i, out: 11 });
+    if (i > 0) put(s, "$+3$", { x: 60 + x0 + i * step - 22, y: 170 + base - v * U - 100, center: true, size: 30, color: C.yellow, at: 1.9 + 0.7 * i, out: 11 });
+  });
+  put(s, r`mỗi cột: $u_1 + u_n = 16$`, { x: 60 + x0 + (step * (n - 1) + bw) / 2, y: 170 + base - 16 * U - 90, center: true, size: 34, color: C.mint, at: 13.6 });
+
+  put(s, r`Mỗi số hạng, kể từ số hạng thứ hai, bằng số hạng đứng ngay trước nó <b>cộng</b> với một số không đổi $d$ (công sai).`, { x: 1000, y: 200, w: 840, size: 34, at: 0.8, out: 11 });
+  put(s, r`$u_{n+1} = u_n + d$`, { x: 1000, y: 340, size: 52, box: C.blue, at: 1.8, out: 11 });
+  put(s, r`$u_n = u_1 + (n-1)d$`, { x: 1000, y: 470, size: 52, box: C.yellow, at: 6.0, out: 11 });
+  put(s, r`Cột thứ $n$: một khúc <span style="color:#6cc0ff">$u_1$</span> và $(n-1)$ khúc <span style="color:#ffd166">$d$</span>.`, { x: 1000, y: 590, size: 32, color: C.muted, at: 6.8, out: 11 });
+  put(s, r`Biết $u_m$: $\ u_n = u_m + (n-m)d$`, { x: 1000, y: 680, size: 46, box: C.lilac, at: 8.6, out: 11 });
+
+  put(s, r`Tổng $n$ số hạng đầu: ghép thêm dãy <span style="color:#b9a6ff">viết ngược</span>.`, { x: 1000, y: 200, w: 840, size: 36, at: 11.3 });
+  put(s, r`Mỗi cột cao $u_1 + u_n$, có $n$ cột<br>$\Rightarrow\ 2S_n = n(u_1 + u_n)$`, { x: 1000, y: 290, size: 36, at: 13.8 });
+  put(s, r`$S_n = \dfrac{n(u_1+u_n)}{2}$`, { x: 1000, y: 440, size: 54, box: C.yellow, at: 15.5 });
+  put(s, r`$S_n = \dfrac{n}{2}\big[2u_1 + (n-1)d\big]$`, { x: 1000, y: 640, size: 54, box: C.mint, at: 17.4 });
+  put(s, r`VD: $2+5+8+11+14 = \dfrac{5\cdot(2+14)}{2} = 40$`, { x: 1000, y: 830, size: 38, at: 19.6 });
+
+  return (lt) => {
+    bars.forEach((b, i) => {
+      const g = ease(seg(lt, 1.5 + 0.7 * i, 2.1 + 0.7 * i));
+      let y = base;
+      b.blocks.forEach((rect, j) => {
+        const h = (j === 0 ? u[0] : d) * U * g;
+        y -= h;
+        setA(rect, { y, height: Math.max(0, h) });
+      });
+    });
+    rev.forEach((rect, i) => {
+      const v = u[n - 1 - i];
+      const p = ease(seg(lt, 11.4 + 0.25 * i, 12.2 + 0.25 * i));
+      const top = base - u[i] * U - v * U;
+      setA(rect, { y: top - (1 - p) * 260, height: v * U, opacity: p });
+    });
+    frame.setAttribute("opacity", ease(seg(lt, 13.4, 13.8)));
+  };
+});
+
+/* ======================================================================
+   10. Geometric sequences
+   ====================================================================== */
+scene(20, "Cấp số nhân", (s) => {
+  head(s, "PHẦN 2 · DÃY SỐ", "Cấp số nhân", C.orange);
+  const svg = svgIn(s, 60, 170, 880, 860);
+  const u = [1, 2, 4, 8, 16], n = 5, U = 34, base = 800, bw = 110, x0 = 80, step = 155;
+  line(svg, 40, base, x0 + step * n, base, { stroke: C.line, "stroke-width": 3 });
+  // each bar is two copies of the previous one stacked
+  const bars = u.map((v, i) => {
+    const lo = S(svg, "rect", { x: x0 + i * step, width: bw, fill: C.lilac, rx: 6, stroke: C.bg, "stroke-width": 3 });
+    const hi = S(svg, "rect", { x: x0 + i * step, width: bw, fill: "#d6caff", rx: 6, stroke: C.bg, "stroke-width": 3 });
+    return { lo, hi };
+  });
+  u.forEach((v, i) => {
+    put(s, `$u_${i + 1}$`, { x: 60 + x0 + i * step + bw / 2, y: 170 + base + 12, center: true, size: 34, color: C.muted, at: 1.5 + 0.7 * i });
+    put(s, `$${v}$`, { x: 60 + x0 + i * step + bw / 2, y: 170 + base - v * U - 56, center: true, size: 34, at: 1.8 + 0.7 * i });
+    if (i > 0) put(s, r`$\times 2$`, { x: 60 + x0 + i * step - 22, y: 170 + base - v * U - 100, center: true, size: 30, color: C.yellow, at: 1.9 + 0.7 * i });
+  });
+  const total = put(s, r`Tổng $= 31$`, { x: 60 + 440, y: 170 + 120, center: true, size: 44, color: C.mint, at: 15.0 });
+
+  put(s, r`Mỗi số hạng, kể từ số hạng thứ hai, bằng số hạng đứng ngay trước nó <b>nhân</b> với một số không đổi $q$ (công bội).`, { x: 1000, y: 180, w: 860, size: 32, at: 0.8 });
+  put(s, r`$u_{n+1} = u_n\cdot q$`, { x: 1000, y: 320, size: 48, box: C.lilac, at: 1.8 });
+  put(s, r`$u_n = u_1\,q^{\,n-1}$`, { x: 1000, y: 435, size: 48, box: C.yellow, at: 5.4 });
+  put(s, r`Biết $u_m$: $\ u_n = u_m\,q^{\,n-m}$`, { x: 1400, y: 450, size: 38, color: C.muted, at: 6.8 });
+  put(s, r`Tổng $n$ số hạng đầu (với $q\ne1$):`, { x: 1000, y: 555, size: 34, at: 9.2 });
+  put(s, r`$S_n = \dfrac{u_1(1-q^n)}{1-q} = \dfrac{u_1(q^n-1)}{q-1}$`, { x: 1000, y: 610, size: 50, box: C.mint, at: 10.2 });
+  put(s, r`Nếu $q = 1$ thì $S_n = n\,u_1$.`, { x: 1000, y: 790, size: 32, color: C.muted, at: 12.6 });
+  put(s, r`VD: $1+2+4+8+16 = \dfrac{1\cdot(2^5-1)}{2-1} = 31$`, { x: 1000, y: 860, size: 38, at: 14.4 });
+
+  return (lt) => {
+    bars.forEach((b, i) => {
+      const g = ease(seg(lt, 1.5 + 0.7 * i, 2.1 + 0.7 * i));
+      const v = u[i];
+      if (i === 0) { setA(b.lo, { y: base - v * U * g, height: v * U * g }); setA(b.hi, { height: 0, y: base }); }
+      else {
+        const half = (v / 2) * U * g;
+        setA(b.lo, { y: base - half, height: half });
+        setA(b.hi, { y: base - 2 * half, height: half });
+      }
+      const glow = ease(seg(lt, 14.6, 15.0));
+      b.lo.setAttribute("fill", glow > 0.5 ? C.mint : C.lilac);
+      b.hi.setAttribute("fill", glow > 0.5 ? "#a8f2de" : "#d6caff");
+    });
+  };
+});
+
+/* ======================================================================
+   11. Summary
+   ====================================================================== */
+scene(11, "Tổng kết", (s) => {
+  head(s, "TỔNG KẾT", "Những công thức cần nhớ", C.yellow);
+  const cards = [
+    ["Radian", r`$180^\circ = \pi$ rad<br>$l = R|\alpha|$`, C.yellow],
+    ["Cơ bản", r`$\sin^2\alpha + \cos^2\alpha = 1$<br>$\tan\alpha = \dfrac{\sin\alpha}{\cos\alpha}$`, C.blue],
+    ["Điều kiện xác định", r`$\tan$: $\alpha\ne \dfrac{\pi}{2}+k\pi$<br>$\cot$: $\alpha\ne k\pi$`, C.mint],
+    ["Góc liên quan", r`Cos đối · Sin bù<br>Phụ chéo · Hơn kém $\pi$: tan, cot`, C.lilac],
+    ["Nhân đôi", r`$\sin 2a = 2\sin a\cos a$<br>$\cos 2a = \cos^2 a - \sin^2 a$`, C.pink],
+    ["Chẵn · Lẻ · Tuần hoàn", r`Chẵn: $f(-x) = f(x)$<br>Lẻ: $f(-x) = -f(x)$<br>T.hoàn: $f(x+T) = f(x)$`, C.orange],
+    ["Cấp số cộng", r`$u_n = u_1 + (n-1)d$<br>$S_n = \dfrac{n(u_1+u_n)}{2}$`, C.yellow],
+    ["Cấp số nhân", r`$u_n = u_1 q^{n-1}$<br>$S_n = \dfrac{u_1(1-q^n)}{1-q}$`, C.mint],
+  ];
+  cards.forEach(([h, body, col], i) => {
+    const row = Math.floor(i / 4), c = i % 4;
+    const e = put(s, `<h3 style="color:${col}">${h}</h3>${rich(body)}`, { raw: true, x: 90 + c * 445, y: 190 + row * 345, w: 415, size: 30, at: 0.6 + 0.3 * i, cls: "card" });
+    e.style.lineHeight = "1.75";
+    e.style.height = "315px";
+    e.style.boxSizing = "border-box";
+  });
+  put(s, "Chúc các em ôn tập tốt!", { x: 960, y: 920, center: true, size: 60, weight: 800, color: C.mint, at: 4.0 });
+});
+
+/* ---------- render ---------- */
+const DURATION = T0;
+const progress = document.getElementById("progress");
+const chapter = document.getElementById("chapter");
+function render(t) {
+  for (const s of SCENES) {
+    const lt = t - s.a;
+    const on = t >= s.a - 1e-6 && t < s.b + (s === SCENES[SCENES.length - 1] ? 1 : 0);
+    s.root.style.display = on ? "block" : "none";
+    if (!on) continue;
+    const first = s === SCENES[0], last = s === SCENES[SCENES.length - 1];
+    s.root.style.opacity = Math.min(first ? 1 : ease(seg(lt, 0, 0.45)), last ? 1 : 1 - ease(seg(lt, s.dur - 0.45, s.dur)));
+    for (const it of s.items) {
+      const p = ease(seg(lt, it.at, it.at + 0.45));
+      const q = it.out === Infinity ? 1 : 1 - ease(seg(lt, it.out - 0.35, it.out));
+      const o = Math.min(p, q);
+      it.e.style.opacity = o;
+      if (it.svg) continue;
+      it.e.style.visibility = o <= 0.001 ? "hidden" : "visible";
+      const tr = [];
+      if (it.center) tr.push("translateX(-50%)");
+      tr.push(`translateY(${((1 - p) * it.rise).toFixed(2)}px)`);
+      if (it.pop) tr.push(`scale(${(0.94 + 0.06 * p).toFixed(4)})`);
+      it.e.style.transform = tr.join(" ");
+    }
+    s.update(lt);
+    chapter.textContent = s.chapter;
+  }
+  progress.style.width = ((t / DURATION) * W).toFixed(1) + "px";
+}
+window.DURATION = DURATION;
+window.render = render;
+window.ready = document.fonts.ready;
+
+function fit() {
+  const k = Math.min(innerWidth / W, innerHeight / H);
+  stage.style.transform = `translate(${(innerWidth - W * k) / 2}px, ${(innerHeight - H * k) / 2}px) scale(${k})`;
+}
+if (!location.search.includes("render")) {
+  fit();
+  addEventListener("resize", fit);
+  const t0 = performance.now();
+  const loop = (now) => { render(((now - t0) / 1000) % DURATION); requestAnimationFrame(loop); };
+  window.ready.then(() => requestAnimationFrame(loop));
+}
+</script>
+</body>
+</html>
