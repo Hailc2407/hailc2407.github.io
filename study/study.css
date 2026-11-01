@@ -507,3 +507,6 @@ th { background: var(--surface); font-weight: 600; }
 .duel-end { font-size: 22px; font-weight: 700; }
 .review-box { margin-top: 12px; }
 .rv-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.order.inline .ord-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.order.inline .ord { width: auto; padding: 6px 12px; }
+.ord-preview { min-height: 1.6em; margin: 10px 0 4px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); font-size: 17px; }
