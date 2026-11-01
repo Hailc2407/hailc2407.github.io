@@ -12,7 +12,7 @@ Từ đó script tạo:
 
 Tuỳ chọn:
   --giong nam            dùng giọng nam (mặc định: giọng nữ HoaiMy)
-  --toc-do +10%          đọc nhanh hơn / chậm hơn (ví dụ -5%)
+  --toc-do +15%          đọc nhanh hơn / chậm hơn (mặc định +10%, ví dụ +0%, +15%)
   --khong-giong          khi ghép: chỉ có nhạc nền, không có giọng đọc
   --giong-file x.wav     khi ghép: dùng file giọng tự thu (đã căn đúng thời gian) thay cho giọng AI
 
@@ -251,7 +251,9 @@ def read_wav_mono(path):
 # ---------------------------------------------------------------- giọng đọc
 async def _tts_edge(text, voice, rate, out_mp3):
     import edge_tts
-    await edge_tts.Communicate(text, voice, rate=rate).save(out_mp3)
+    # đi qua proxy nếu máy có cấu hình (aiohttp không tự đọc biến môi trường)
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or None
+    await edge_tts.Communicate(text, voice, rate=rate, proxy=proxy).save(out_mp3)
 
 
 def tts(text, voice, rate, out_wav):
@@ -325,7 +327,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("buoc", choices=["kich-ban", "nhac", "giong", "ghep", "tat-ca"])
     ap.add_argument("--giong", dest="gioi", choices=["nu", "nam"], default="nu")
-    ap.add_argument("--toc-do", default="+0%")
+    ap.add_argument("--toc-do", default="+10%")
     ap.add_argument("--khong-giong", action="store_true")
     ap.add_argument("--giong-file")
     a = ap.parse_args()

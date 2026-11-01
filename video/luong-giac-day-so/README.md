@@ -40,7 +40,7 @@ python3 am-thanh.py tat-ca
 ```
 
 Kết quả: `luong-giac-day-so-am-thanh.mp4` (giọng nữ HoaiMy; thêm `--giong nam` để dùng giọng nam,
-`--toc-do +10%` để đọc nhanh hơn). Nhạc nền tự nhỏ lại mỗi khi có giọng. Câu nào dài hơn chỗ trống sẽ
+`--toc-do` để đổi tốc độ, mặc định `+10%`). Nhạc nền tự nhỏ lại mỗi khi có giọng. Câu nào dài hơn chỗ trống sẽ
 được đọc nhanh hơn một chút (tối đa 1,3 lần); script in cảnh báo nếu vẫn không vừa, khi đó rút gọn câu đó trong `LOI_DOC`.
 
 **Dùng giọng tự thu:** thu theo `thuyet-minh.md` thành một file wav dài đúng 220 giây, rồi

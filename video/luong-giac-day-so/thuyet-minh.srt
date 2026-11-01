@@ -1,5 +1,5 @@
 1
-00:00:00,600 --> 00:00:04,256
+00:00:00,600 --> 00:00:04,907
 Chào các em! Hôm nay mình cùng ôn tập lượng giác và dãy số.
 
 2
@@ -7,11 +7,11 @@ Chào các em! Hôm nay mình cùng ôn tập lượng giác và dãy số.
 Phần một: radian và độ dài cung.
 
 3
-00:00:07,400 --> 00:00:10,591
+00:00:07,766 --> 00:00:10,800
 Lấy một đoạn dài đúng bằng bán kính, uốn lên đường tròn.
 
 4
-00:00:10,800 --> 00:00:13,293
+00:00:10,800 --> 00:00:13,400
 Góc ở tâm chắn cung đó là một radian.
 
 5
@@ -19,7 +19,7 @@ Góc ở tâm chắn cung đó là một radian.
 Quay tiếp nửa vòng, cung dài pi R,
 
 6
-00:00:15,600 --> 00:00:18,093
+00:00:15,841 --> 00:00:18,200
 nên một trăm tám mươi độ bằng pi radian.
 
 7
@@ -27,23 +27,23 @@ nên một trăm tám mươi độ bằng pi radian.
 Độ dài cung: l bằng R nhân trị tuyệt đối alpha.
 
 8
-00:00:21,000 --> 00:00:23,493
+00:00:21,705 --> 00:00:24,095
 Nhớ đổi độ sang radian trước, rồi mới tính.
 
 9
-00:00:24,400 --> 00:00:27,358
+00:00:24,400 --> 00:00:27,600
 Trên đường tròn lượng giác, điểm M ứng với góc alpha.
 
 10
-00:00:27,600 --> 00:00:30,791
+00:00:27,664 --> 00:00:30,800
 Hoành độ của M là cos alpha, tung độ là sin alpha.
 
 11
-00:00:30,800 --> 00:00:33,526
+00:00:31,367 --> 00:00:33,800
 Tan bằng sin chia cos, cot bằng cos chia sin.
 
 12
-00:00:33,800 --> 00:00:36,991
+00:00:33,820 --> 00:00:36,664
 Sin và cos luôn nằm trong đoạn từ trừ một đến một.
 
 13
@@ -51,71 +51,71 @@ Sin và cos luôn nằm trong đoạn từ trừ một đến một.
 Áp dụng Pi-ta-go cho tam giác vuông O H M,
 
 14
-00:00:39,600 --> 00:00:42,093
+00:00:39,810 --> 00:00:42,021
 ta được sin bình cộng cos bình bằng một.
 
 15
-00:00:43,400 --> 00:00:46,126
+00:00:43,400 --> 00:00:46,300
 Khi nào sin, cos bằng không, một, hoặc trừ một?
 
 16
-00:00:46,300 --> 00:00:51,119
+00:00:46,334 --> 00:00:51,200
 Sin là tung độ. Sin bằng một tại pi phần hai, bằng trừ một tại trừ pi phần hai.
 
 17
-00:00:51,200 --> 00:00:54,600
+00:00:51,668 --> 00:00:54,600
 Sin bằng không khi điểm nằm trên trục hoành: alpha bằng k pi.
 
 18
-00:00:54,600 --> 00:00:58,721
+00:00:54,963 --> 00:00:59,027
 Cos là hoành độ: cos bằng không khi alpha bằng pi phần hai cộng k pi.
 
 19
-00:00:59,400 --> 00:01:03,521
+00:00:59,400 --> 00:01:03,549
 Tan xác định khi cos khác không, tức alpha khác pi phần hai cộng k pi.
 
 20
-00:01:05,500 --> 00:01:08,691
+00:01:05,500 --> 00:01:08,806
 Cot xác định khi sin khác không, tức alpha khác k pi.
 
 21
-00:01:09,000 --> 00:01:10,795
+00:01:09,000 --> 00:01:11,127
 Nhớ: mẫu số phải khác không.
 
 22
-00:01:12,600 --> 00:01:15,791
+00:01:12,600 --> 00:01:15,900
 Góc đối nhau: M phẩy đối xứng với M qua trục hoành.
 
 23
-00:01:15,900 --> 00:01:20,021
+00:01:16,024 --> 00:01:21,531
 Hoành độ giữ nguyên nên cos không đổi, còn sin, tan, cot đổi dấu. Cos đối!
 
 24
-00:01:22,100 --> 00:01:24,360
+00:01:22,100 --> 00:01:24,522
 Góc bù nhau: đối xứng qua trục tung.
 
 25
-00:01:24,600 --> 00:01:28,256
+00:01:24,600 --> 00:01:29,163
 Tung độ giữ nguyên nên sin không đổi, còn lại đổi dấu. Sin bù!
 
 26
-00:01:31,600 --> 00:01:34,558
+00:01:31,600 --> 00:01:34,513
 Góc phụ nhau: đối xứng qua đường thẳng y bằng x.
 
 27
-00:01:34,600 --> 00:01:38,953
+00:01:34,600 --> 00:01:39,945
 Hoành độ và tung độ đổi chỗ cho nhau: sin thành cos, tan thành cot. Phụ chéo!
 
 28
-00:01:41,100 --> 00:01:43,593
+00:01:41,100 --> 00:01:43,600
 Hơn kém pi: đối xứng qua gốc tọa độ.
 
 29
-00:01:43,600 --> 00:01:46,326
+00:01:43,600 --> 00:01:47,069
 Sin, cos cùng đổi dấu, còn tan, cot giữ nguyên.
 
 30
-00:01:50,700 --> 00:01:54,123
+00:01:50,700 --> 00:01:55,054
 Tóm lại: cos đối, sin bù, phụ chéo, hơn kém pi tan cot.
 
 31
@@ -123,11 +123,11 @@ Tóm lại: cos đối, sin bù, phụ chéo, hơn kém pi tan cot.
 Công thức nhân đôi: sin hai a bằng hai sin a cos a.
 
 32
-00:01:59,600 --> 00:02:02,300
+00:01:59,707 --> 00:02:02,300
 Cos hai a bằng cos bình a trừ sin bình a.
 
 33
-00:02:02,300 --> 00:02:06,200
+00:02:02,300 --> 00:02:06,014
 Thay sin bình bằng một trừ cos bình, ta được hai cos bình a trừ một.
 
 34
@@ -135,7 +135,7 @@ Thay sin bình bằng một trừ cos bình, ta được hai cos bình a trừ m
 Hoặc thay cos bình, ta được một trừ hai sin bình a.
 
 35
-00:02:09,100 --> 00:02:11,360
+00:02:09,100 --> 00:02:11,110
 Từ đó suy ra công thức hạ bậc.
 
 36
@@ -147,15 +147,15 @@ Hàm số chẵn: f của trừ x bằng f của x.
 Lật đồ thị qua trục tung, ta được đúng nó. Ví dụ cos x.
 
 38
-00:02:19,000 --> 00:02:21,900
+00:02:19,609 --> 00:02:21,900
 Hàm số lẻ: f của trừ x bằng trừ f của x.
 
 39
-00:02:21,900 --> 00:02:26,253
+00:02:22,457 --> 00:02:26,500
 Xoay đồ thị nửa vòng quanh gốc tọa độ, ta được đúng nó. Ví dụ sin x.
 
 40
-00:02:26,500 --> 00:02:28,760
+00:02:27,140 --> 00:02:29,558
 Lưu ý: tập xác định phải đối xứng.
 
 41
@@ -163,7 +163,7 @@ Lưu ý: tập xác định phải đối xứng.
 Hàm số tuần hoàn: đồ thị lặp lại sau mỗi đoạn dài T.
 
 42
-00:02:33,800 --> 00:02:36,526
+00:02:33,800 --> 00:02:36,600
 Trượt một chu kì sang phải, đồ thị trùng khít.
 
 43
@@ -171,7 +171,7 @@ Trượt một chu kì sang phải, đồ thị trùng khít.
 f của x cộng T bằng f của x, với mọi x.
 
 44
-00:02:41,000 --> 00:02:44,423
+00:02:41,000 --> 00:02:44,940
 Sin, cos có chu kì hai pi; tan, cot có chu kì pi.
 
 45
@@ -179,7 +179,7 @@ Sin, cos có chu kì hai pi; tan, cot có chu kì pi.
 Phần hai: cấp số cộng.
 
 46
-00:02:46,900 --> 00:02:50,091
+00:02:47,138 --> 00:02:50,151
 Mỗi số hạng bằng số hạng trước cộng với công sai d.
 
 47
@@ -187,41 +187,41 @@ Mỗi số hạng bằng số hạng trước cộng với công sai d.
 Cột thứ n gồm u một và n trừ một khúc d,
 
 48
-00:02:53,400 --> 00:02:56,400
+00:02:53,592 --> 00:02:56,400
 nên u n bằng u một cộng n trừ một nhân d.
 
 49
-00:02:56,400 --> 00:02:58,893
+00:02:56,746 --> 00:02:59,000
 Tính tổng: ghép thêm dãy viết ngược lên trên.
 
 50
-00:02:59,000 --> 00:03:04,284
+00:02:59,119 --> 00:03:04,500
 Mỗi cột cao u một cộng u n. Có n cột, nên S n bằng n nhân tổng đó, chia hai.
 
 51
-00:03:04,500 --> 00:03:08,621
+00:03:05,267 --> 00:03:09,097
 Ví dụ: hai cộng năm cộng tám cộng mười một cộng mười bốn bằng bốn mươi.
 
 52
-00:03:09,500 --> 00:03:13,388
+00:03:09,500 --> 00:03:13,356
 Cấp số nhân: mỗi số hạng bằng số hạng trước nhân với công bội q.
 
 53
-00:03:13,600 --> 00:03:18,186
+00:03:13,600 --> 00:03:18,200
 Mỗi cột gấp đôi cột trước, nên u n bằng u một nhân q mũ n trừ một.
 
 54
-00:03:18,200 --> 00:03:23,251
+00:03:18,200 --> 00:03:23,392
 Với q khác một, tổng S n bằng u một nhân một trừ q mũ n, chia một trừ q.
 
 55
-00:03:23,400 --> 00:03:27,521
+00:03:23,400 --> 00:03:27,312
 Ví dụ: một cộng hai cộng bốn cộng tám cộng mười sáu bằng ba mươi mốt.
 
 56
-00:03:29,500 --> 00:03:33,388
+00:03:29,500 --> 00:03:33,842
 Đây là những công thức quan trọng nhất. Các em chụp lại để ôn nhé.
 
 57
-00:03:34,000 --> 00:03:35,795
+00:03:34,000 --> 00:03:35,680
 Chúc các em ôn tập tốt!
