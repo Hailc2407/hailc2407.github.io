@@ -86,7 +86,7 @@ for (const rel of files) {
   index.files[rel] = { id, size: data.length };
   if (/^lessons\/[^/]+\.json$/.test(rel)) {
     const l = JSON.parse(data.toString("utf8"));
-    index.lessons.push({ id: l.id, no: l.no, title: l.title, subtitle: l.subtitle, file: rel });
+    index.lessons.push({ id: l.id, no: l.no, group: l.group || "toeic", title: l.title, subtitle: l.subtitle, file: rel });
   }
 }
 index.lessons.sort((a, b) => (a.no || 0) - (b.no || 0));

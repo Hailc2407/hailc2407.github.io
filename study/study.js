@@ -35,6 +35,7 @@
     }
     return a;
   };
+  const shown = (list) => [...new Set(list.map((x) => String(x).replace(/'/g, "’")))];
   const norm = (s) => String(s).toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z0-9' /-]/g, " ").replace(/\s+/g, " ").trim();
 
   /* ---------- Preferences (this tab only) ---------- */
@@ -107,6 +108,10 @@
 
   /* ---------- Lesson state ---------- */
   let L = null; // current lesson
+  /* Items answered wrongly in this lesson (gaps, choices, sort, fix, timeline, duel);
+     the "review" block lets the learners redo them. Kept in memory only. */
+  let MISSED = new Map();
+  const miss = (key, item) => { if (key && !MISSED.has(key)) MISSED.set(key, item); };
 
   /* ---------- Images ---------- */
   function img(name, cls = "photo", alt = "") {
@@ -387,6 +392,7 @@
       }
       grade();
       if (mode !== "hidden") reveal();
+      if (!q.options[i].ok && q.ask && !q.img) miss("mcq:" + q.ask, { type: "choice", q: q.ask, opts: q.options.map((o) => o.t), a: q.options.findIndex((o) => o.ok), why: (q.options.find((o) => o.ok) || {}).why });
       if (opts.onAnswer) opts.onAnswer(Boolean(q.options[i].ok));
     }
     for (const [i, o] of q.options.entries()) {
@@ -518,7 +524,10 @@
           li.append(input, h("span", { html: parts[k + 1] || "" }));
         }
         if (it.hint) li.append(h("span", { class: "hint" }, " " + it.hint));
-        li.dataset.ans = answers.map((a) => a.join(" / ")).join(" · ");
+        li.dataset.ans = answers.map((a) => shown(a).join(" / ")).join(" · ");
+        li.dataset.q = it.q;
+        li.dataset.a = JSON.stringify(answers);
+        if (it.opts || b.bank) li.dataset.opts = JSON.stringify(it.opts ? (n > 1 ? it.opts : [it.opts]) : answers.map(() => b.bank));
         return li;
       }))));
     const check = btn("Kiểm tra", () => {
@@ -526,6 +535,10 @@
       fields.forEach(({ input, a }) => {
         const good = a.some((x) => same(x, input.value));
         if (good) ok++;
+        else if (input.value.trim() && input.closest("li")) {
+          const li = input.closest("li");
+          miss("gap:" + li.dataset.q, { type: "gap", q: li.dataset.q, a: JSON.parse(li.dataset.a), opts: li.dataset.opts ? JSON.parse(li.dataset.opts) : null });
+        }
         input.classList.toggle("ok", good);
         input.classList.toggle("bad", !good);
       });
@@ -1024,6 +1037,245 @@
     return el;
   };
 
+  /* ---------- Grammar blocks ---------- */
+
+  /* Sort: click a card, then click the column it belongs to. Right away: green, or red and moved
+     to the right column with the reason. b.cats: column names; b.items: { t, c, why }. */
+  B.sort = (b) => {
+    const sc = scoreLine();
+    let sel = null, ok = 0, done = 0;
+    const pool = h("div", { class: "sort-pool" });
+    const cols = b.cats.map((c, ci) => {
+      const list = h("div", { class: "sort-list" });
+      const col = h("div", { class: "sort-col", onclick: () => place(ci) }, h("div", { class: "sort-head", html: c }), list);
+      col.list = list;
+      return col;
+    });
+    const items = b.items.map((it) => {
+      const el = h("button", { type: "button", class: "sort-card", html: it.t, onclick: (e) => {
+        if (el.dataset.done) return; // a placed card: let the click reach its column
+        e.stopPropagation();
+        if (sel) sel.classList.remove("sel");
+        sel = sel === el ? null : el;
+        if (sel) sel.classList.add("sel");
+      } });
+      el.it = it;
+      return el;
+    });
+    // shuffle for the pool
+    items.slice().sort(() => Math.random() - 0.5).forEach((el) => pool.append(el));
+    function place(ci) {
+      if (!sel) { toast("Chọn một thẻ trước"); return; }
+      const el = sel, it = el.it;
+      sel = null;
+      el.classList.remove("sel");
+      el.dataset.done = 1;
+      done++;
+      const good = ci === it.c;
+      if (good) ok++;
+      else miss("sort:" + it.t, { type: "choice", q: it.t, opts: b.cats, a: it.c, why: it.why });
+      el.classList.add(good ? "ok" : "bad");
+      cols[it.c].list.append(h("div", { class: "sort-item" }, el, !good && it.why ? h("div", { class: "sort-why", html: "✗ " + it.why }) : null));
+      if (done === b.items.length) sc.set(ok, done);
+    }
+    return h("div", { class: "sort" }, h("p", { class: "muted small" }, "Bấm vào một thẻ, rồi bấm vào cột đúng."), pool, h("div", { class: "sort-cols" }, cols), sc.el);
+  };
+
+  /* Timeline pictures for tenses. kinds: now, temp, perm, repeat, past, longpast, result, plan, instant */
+  function timeline(kind) {
+    const W = 220, Hh = 54, y = 32, nowX = 120;
+    const parts = [`<line x1="10" y1="${y}" x2="${W - 10}" y2="${y}" class="tl-axis"/>`,
+      `<line x1="${nowX}" y1="${y - 14}" x2="${nowX}" y2="${y + 14}" class="tl-now"/>`,
+      `<text x="22" y="${Hh - 2}" class="tl-lab">past</text><text x="${nowX - 12}" y="${Hh - 2}" class="tl-lab">now</text><text x="${W - 46}" y="${Hh - 2}" class="tl-lab">future</text>`];
+    const dot = (x, c = "tl-dot") => `<circle cx="${x}" cy="${y}" r="5" class="${c}"/>`;
+    const bar = (a, z) => `<rect x="${a}" y="${y - 6}" width="${z - a}" height="12" rx="6" class="tl-bar"/>`;
+    const arrow = (a, z) => `<path d="M${a} ${y - 10} Q ${(a + z) / 2} ${y - 30} ${z} ${y - 10}" class="tl-arrow" marker-end="url(#tl-head)"/>`;
+    const add = {
+      now: () => bar(nowX - 22, nowX + 22),
+      temp: () => `<rect x="${nowX - 45}" y="${y - 9}" width="90" height="18" rx="4" class="tl-box"/>` + bar(nowX - 35, nowX + 35),
+      repeat: () => [30, 60, 90, 150, 180].map((x) => dot(x)).join(""),
+      past: () => dot(55),
+      longpast: () => bar(25, 70),
+      perm: () => bar(14, W - 14),
+      result: () => dot(55) + arrow(58, nowX - 2) + `<text x="${nowX + 6}" y="${y - 12}" class="tl-lab">result now</text>`,
+      plan: () => dot(70, "tl-dot dec") + arrow(73, 175) + dot(178),
+      instant: () => dot(nowX, "tl-dot dec") + arrow(nowX + 3, 175) + dot(178),
+    }[kind];
+    return `<svg viewBox="0 0 ${W} ${Hh}" class="tl-svg" role="img" aria-label="${kind}"><defs><marker id="tl-head" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" class="tl-head"/></marker></defs>${parts.join("")}${add ? add() : ""}</svg>`;
+  }
+  /* Timeline: pick the picture that matches the sentence. items: { s, opts: [kind…], labels?, a, why } */
+  B.timeline = (b) => {
+    const sc = scoreLine();
+    let ok = 0, n = 0;
+    const rows = b.items.map((it, i) => {
+      const why = h("div", { class: "tl-why", hidden: true, html: it.why || "" });
+      const opts = it.opts.map((k, j) => h("button", { type: "button", class: "tl-opt", onclick: (e) => {
+        const row = e.currentTarget.closest(".tl-row");
+        if (row.dataset.done) return;
+        row.dataset.done = 1;
+        n++;
+        const good = j === it.a;
+        if (good) ok++;
+        else miss("tl:" + it.s, { type: "choice", q: it.s, opts: it.opts.map((x, m) => (it.labels && it.labels[m]) || x), a: it.a, why: it.why });
+        e.currentTarget.classList.add(good ? "ok" : "bad");
+        $$(".tl-opt", row)[it.a].classList.add("ok");
+        why.hidden = false;
+        if (n === b.items.length) sc.set(ok, n);
+      } }, h("span", { html: timeline(k) }), it.labels ? h("span", { class: "tl-cap", html: it.labels[j] }) : null));
+      return h("div", { class: "tl-row" }, h("p", { class: "tl-s", html: (i + 1) + ". " + it.s }), h("div", { class: "tl-opts" }, opts), why);
+    });
+    return h("div", { class: "timeline" }, rows, sc.el);
+  };
+
+  /* Find the mistake: click the wrong word(s), type the correction, check. A correct sentence: press "Câu đúng".
+     items: { s, err: "are you going" | null, fix: ["do you go"], why } */
+  B.fix = (b) => {
+    const sc = scoreLine();
+    let ok = 0, n = 0;
+    const rows = b.items.map((it, i) => {
+      const words = it.s.split(" ");
+      const spans = words.map((w) => h("span", { class: "fx-w", onclick: (e) => { if (!row.dataset.done) e.currentTarget.classList.toggle("on"); } }, w));
+      const sent = h("span", { class: "fx-s" });
+      spans.forEach((sp, k) => { sent.append(sp); if (k < spans.length - 1) sent.append(" "); });
+      const input = h("input", { class: "gap-in wide", type: "text", placeholder: "sửa thành…", autocomplete: "off", spellcheck: "false" });
+      const res = h("div", { class: "fx-res", hidden: true });
+      const finish = (good, msg) => {
+        row.dataset.done = 1;
+        n++;
+        if (good) ok++;
+        else miss("fix:" + it.s, { type: "gap", q: it.s + (it.err ? " → <i>" + it.err + "</i> → ___" : " → ___"), a: [it.err ? it.fix : ["OK"]] });
+        row.classList.add(good ? "fx-ok" : "fx-bad");
+        res.hidden = false;
+        res.innerHTML = (good ? "✓ " : "✗ ") + msg + (it.why ? "<br><span class='muted'>" + it.why + "</span>" : "");
+        if (it.err) {
+          const errW = it.err.split(" ").map(norm);
+          for (let k = 0; k + errW.length <= words.length; k++) {
+            if (errW.every((x, m) => norm(words[k + m]) === x)) { for (let m = 0; m < errW.length; m++) spans[k + m].classList.add("err"); break; }
+          }
+        }
+        if (n === b.items.length) sc.set(ok, n);
+      };
+      const check = btn("Kiểm tra", () => {
+        if (row.dataset.done) return;
+        const picked = spans.filter((x) => x.classList.contains("on")).map((x) => norm(x.textContent)).join(" ");
+        if (!it.err) return finish(false, "Câu này đúng rồi (OK).");
+        if (!picked) { toast("Bấm vào chữ sai trước"); return; }
+        const rightSpot = picked === norm(it.err);
+        const rightFix = it.fix.some((f) => norm(f) === norm(input.value));
+        finish(rightSpot && rightFix, rightSpot && rightFix ? "Đúng: <b>" + it.err + "</b> → <b>" + it.fix[0] + "</b>"
+          : "Đáp án: <b>" + it.err + "</b> → <b>" + shown(it.fix).join(" / ") + "</b>");
+      }, "btn small");
+      const okBtn = btn("Câu đúng (OK)", () => {
+        if (row.dataset.done) return;
+        finish(!it.err, it.err ? "Câu này có lỗi: <b>" + it.err + "</b> → <b>" + shown(it.fix).join(" / ") + "</b>" : "Đúng, câu này không có lỗi.");
+      }, "btn small ghost");
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") check.click(); });
+      const row = h("div", { class: "fx-row" }, h("div", {}, h("b", {}, (i + 1) + ". "), sent), h("div", { class: "fx-tools" }, input, check, okBtn), res);
+      return row;
+    });
+    return h("div", { class: "fixit" }, h("p", { class: "muted small" }, "Bấm vào chữ sai (có thể nhiều chữ), gõ cách sửa rồi Kiểm tra. Nếu câu không sai, bấm “Câu đúng (OK)”."), rows, sc.el);
+  };
+
+  /* Duel: two players take turns; each question has a timer; a wrong answer goes back into the queue once.
+     items: { q, opts, a, why } */
+  B.duel = (b) => {
+    const names = ["Bạn A", "Bạn B"];
+    let score = [0, 0], turn = 0, queue = [], again = new Set(), cur = null, tid = 0, left = 0;
+    const nameIns = names.map((nm, i) => h("input", { class: "gap-in", value: nm, size: 8, onchange: (e) => { names[i] = e.target.value || nm; paint(); } }));
+    const board = h("div", { class: "duel-board" });
+    const stage = h("div", { class: "duel-stage" });
+    const clock = h("span", { class: "duel-clock" });
+    function paint() {
+      board.textContent = "";
+      board.append(...[0, 1].map((i) => h("div", { class: "duel-p" + (i === turn && cur ? " on" : "") }, h("span", {}, names[i]), h("b", {}, String(score[i])))));
+    }
+    function start() {
+      queue = b.items.map((x, i) => i).sort(() => Math.random() - 0.5);
+      score = [0, 0]; turn = 0; again = new Set();
+      next();
+    }
+    function next() {
+      clearInterval(tid);
+      if (!queue.length) { cur = null; paint(); return end(); }
+      cur = queue.shift();
+      paint();
+      const it = b.items[cur];
+      left = b.seconds || 15;
+      clock.textContent = left + "s";
+      const opts = it.opts.map((o, j) => h("button", { type: "button", class: "duel-opt", html: o, onclick: () => answer(j) }));
+      stage.textContent = "";
+      stage.append(h("div", { class: "duel-turn" }, "Lượt của ", h("b", {}, names[turn]), " ", clock), h("p", { class: "duel-q", html: it.q }), h("div", { class: "duel-opts" }, opts));
+      tid = setInterval(() => { left--; clock.textContent = left + "s"; if (left <= 0) answer(-1); }, 1000);
+    }
+    function answer(j) {
+      clearInterval(tid);
+      const it = b.items[cur];
+      const good = j === it.a;
+      if (good) score[turn]++;
+      else {
+        miss("duel:" + it.q, { type: "choice", q: it.q, opts: it.opts, a: it.a, why: it.why });
+        if (!again.has(cur)) { again.add(cur); queue.push(cur); }
+      }
+      $$(".duel-opt", stage).forEach((x, k) => { x.disabled = true; if (k === it.a) x.classList.add("ok"); else if (k === j) x.classList.add("bad"); });
+      stage.append(h("p", { class: "duel-why", html: (good ? "✓ " : j < 0 ? "⏱ Hết giờ. " : "✗ ") + (it.why || "") }),
+        btn("Câu tiếp →", () => { turn = 1 - turn; next(); }, "btn small"));
+      paint();
+    }
+    function end() {
+      stage.textContent = "";
+      const w = score[0] === score[1] ? "Hoà!" : (score[0] > score[1] ? names[0] : names[1]) + " thắng!";
+      stage.append(h("p", { class: "duel-end" }, "🏁 " + w + " (" + score[0] + " – " + score[1] + ")"), btn("Chơi lại", start, "btn"));
+    }
+    stage.append(btn("▶ Bắt đầu", start, "btn"));
+    paint();
+    return h("div", { class: "duel" }, h("div", { class: "duel-names" }, "Tên: ", nameIns[0], " vs ", nameIns[1]), board, stage);
+  };
+
+  /* Review: redo every item answered wrongly so far in this lesson. */
+  B.review = () => {
+    const box = h("div", { class: "review-box" });
+    const go = btn("🔁 Làm lại các câu sai", () => {
+      box.textContent = "";
+      const items = Array.from(MISSED.values());
+      if (!items.length) { box.append(h("p", { class: "muted" }, "Chưa có câu sai nào. Tuyệt!")); return; }
+      const sc = scoreLine();
+      let ok = 0, n = 0;
+      const tick = (good) => { n++; if (good) ok++; if (n === items.length) sc.set(ok, n); };
+      box.append(h("p", { class: "muted small" }, items.length + " câu"), ...items.map((it, i) => {
+        if (it.type === "choice") {
+          const why = h("div", { class: "tl-why", hidden: true, html: it.why || "" });
+          const row = h("div", { class: "rv-row" }, h("p", { html: (i + 1) + ". " + it.q }),
+            h("div", { class: "duel-opts" }, it.opts.map((o, j) => h("button", { type: "button", class: "duel-opt", html: o, onclick: (e) => {
+              if (row.dataset.done) return; row.dataset.done = 1;
+              e.currentTarget.classList.add(j === it.a ? "ok" : "bad");
+              $$(".duel-opt", row)[it.a].classList.add("ok"); why.hidden = false; tick(j === it.a);
+            } }))), why);
+          return row;
+        }
+        const parts = it.q.split("___");
+        const fields = [];
+        const p = h("p", {}, h("b", {}, (i + 1) + ". "), h("span", { html: parts[0] }));
+        for (let k = 0; k < Math.max(1, parts.length - 1); k++) {
+          const choices = it.opts && it.opts[k];
+          const input = choices ? h("select", { class: "sel" }, h("option", { value: "" }, "…"), choices.map((w) => h("option", { value: w }, w)))
+            : h("input", { class: "gap-in", type: "text", autocomplete: "off", spellcheck: "false" });
+          fields.push(input);
+          p.append(input, h("span", { html: parts[k + 1] || "" }));
+        }
+        const res = h("span", { class: "ans" });
+        const row = h("div", { class: "rv-row" }, p, btn("Kiểm tra", () => {
+          if (row.dataset.done) return; row.dataset.done = 1;
+          const good = fields.every((f, k) => (it.a[k] || []).some((x) => norm(x) === norm(f.value)));
+          fields.forEach((f, k) => f.classList.add((it.a[k] || []).some((x) => norm(x) === norm(f.value)) ? "ok" : "bad"));
+          res.textContent = " ✓ " + it.a.map((a) => shown(a).join(" / ")).join(" · ");
+          tick(good);
+        }, "btn small"), res);
+        return row;
+      }), sc.el);
+    }, "btn");
+    return h("div", { class: "review" }, go, box);
+  };
+
   B.checklist = (b) => h("ul", { class: "checklist" }, b.items.map((t) => h("li", {}, h("label", {}, h("input", { type: "checkbox" }), h("span", { html: t })))));
 
   /* ======================================================================
@@ -1044,6 +1296,7 @@
     app.textContent = "";
     app.append(h("p", { class: "loading" }, "Đang mở bài học…"));
     L = await V.json(file);
+    MISSED = new Map();
     L.vocabIndex = {};
     for (const s of L.sections) for (const b of s.blocks) if (b.type === "vocab") b.items.forEach((w) => { L.vocabIndex[w.word] = w; });
     players.forEach((p) => p.pause());
@@ -1056,7 +1309,7 @@
         h("span", { class: "toc-n" }, i + 1), h("span", { class: "toc-t" }, s.short || s.title), h("span", { class: "toc-m" }, s.minutes + "′"))));
 
     const head = h("header", { class: "lesson-head" },
-      h("p", { class: "kicker" }, "Lesson " + L.no + " · " + L.minutes + " minutes"),
+      h("p", { class: "kicker" }, h("a", { href: "#/g/" + (L.group || "toeic") }, (L.groupTitle || "TOEIC")), " · Lesson " + L.no + " · " + L.minutes + " minutes"),
       h("h1", {}, L.title),
       L.subtitle ? h("p", { class: "lead" }, L.subtitle) : null,
       L.book ? h("p", { class: "muted small", html: "📘 " + L.book }) : null,
@@ -1074,7 +1327,7 @@
       s.blocks.map(renderBlock)));
 
     app.append(h("div", { class: "lesson" }, nav, h("div", { class: "lesson-main" }, head, sections,
-      h("footer", { class: "lesson-foot" }, h("a", { href: "#/" }, "← All lessons")))));
+      h("footer", { class: "lesson-foot" }, h("a", { href: "#/g/" + (L.group || "toeic") }, "← All lessons")))));
 
     // Highlight the section being read.
     const items = $$(".toc-item", nav);
@@ -1085,21 +1338,44 @@
     window.scrollTo(0, 0);
   }
 
+  /* Lesson groups (groups.json): the home page shows one card per group;
+     a group page lists its lessons and its own curriculum table. */
+  async function groups() {
+    const idx = await V.getIndex();
+    const gs = V.has("groups.json") ? (await V.json("groups.json")).groups : [{ id: "toeic", title: "TOEIC", curriculum: "curriculum.json" }];
+    return gs.map((g) => Object.assign({ lessons: idx.lessons.filter((l) => (l.group || "toeic") === g.id) }, g));
+  }
+
   async function showList() {
     document.title = "English Room";
-    const idx = await V.getIndex();
+    const gs = await groups();
     app.textContent = "";
     app.append(h("div", { class: "home" },
       h("h1", {}, "English Room"),
-      h("p", { class: "lead" }, "TOEIC Listening & Reading · Speaking & Writing · học chung 2 người"),
-      h("div", { class: "lessons" }, idx.lessons.map((l) => h("a", { class: "lesson-card", href: "#/" + l.id },
-        h("span", { class: "kicker" }, "Lesson " + l.no), h("strong", {}, l.title), l.subtitle ? h("span", { class: "muted small" }, l.subtitle) : null)))),
-      V.has("curriculum.json") ? await curriculum() : null);
+      h("p", { class: "lead" }, "Phòng học chung 2 người"),
+      h("div", { class: "lessons groups" }, gs.map((g) => h("a", { class: "lesson-card group-card", href: "#/g/" + g.id },
+        h("span", { class: "kicker" }, g.lessons.length ? g.lessons.length + " buổi" : "sắp có"),
+        h("strong", {}, g.title), g.subtitle ? h("span", { class: "muted small", html: g.subtitle }) : null)))));
   }
 
-  /* Which parts of the books each lesson has used, and what is planned next. */
-  async function curriculum() {
-    const c = await V.json("curriculum.json");
+  async function showGroup(id) {
+    const g = (await groups()).find((x) => x.id === id);
+    if (!g) return showList();
+    document.title = g.title + " · English Room";
+    app.textContent = "";
+    app.append(h("div", { class: "home" },
+      h("p", { class: "muted small" }, h("a", { href: "#/" }, "← English Room")),
+      h("h1", {}, g.title),
+      g.subtitle ? h("p", { class: "lead", html: g.subtitle }) : null,
+      h("div", { class: "lessons" }, g.lessons.length ? g.lessons.map((l) => h("a", { class: "lesson-card", href: "#/" + l.id },
+        h("span", { class: "kicker" }, "Lesson " + l.no), h("strong", {}, l.title), l.subtitle ? h("span", { class: "muted small" }, l.subtitle) : null))
+        : h("p", { class: "muted" }, "Chưa có bài.")),
+      g.curriculum && V.has(g.curriculum) ? await curriculum(g.curriculum) : null));
+  }
+
+  /* Which parts of the book(s) each lesson of a group has used, and what is planned next. */
+  async function curriculum(file) {
+    const c = await V.json(file);
     const tag = (r) => r.used ? h("span", { class: "cur-tag used" }, "Lesson " + r.used)
       : r.plan ? h("span", { class: "cur-tag plan" }, "Dự kiến L" + r.plan) : h("span", { class: "cur-tag free" }, "chưa dùng");
     return h("section", { class: "curriculum" },
@@ -1119,6 +1395,7 @@
     const idx = await V.getIndex();
     const l = idx.lessons.find((x) => x.id === id);
     if (l) await showLesson(l.file);
+    else if (id.startsWith("g/")) await showGroup(id.slice(2));
     else if (!id || !document.getElementById(id)) await showList();
   }
 
