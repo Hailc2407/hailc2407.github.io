@@ -13,8 +13,7 @@ assets/js/diagrams.js animated research diagrams
 assets/img/           photo and favicon
 assets/files/         CV (opened in the on-page viewer, downloadable from it)
 assets/js/gate.js     hidden entrance to the study pages (Ctrl + Shift + L)
-study/                English study pages; lessons, photos and audio are encrypted in study/vault/
-tools/vault.mjs       encrypts the study materials into study/vault/
+study/index.html      redirect to the study pages, which moved to the StudyToeic repo
 ```
 
 ## Hướng dẫn cập nhật
@@ -51,10 +50,7 @@ Sau đó mở http://localhost:8000.
 
 ## Phòng học tiếng Anh (ẩn)
 
-Trên trang chủ bấm **Ctrl + Shift + L** (trên Mac là phím Control, không phải Command), hoặc mở thẳng https://hailc2407.github.io/study/. Không cần mật khẩu: bài học, ảnh và audio vẫn nằm trong `study/vault/` dưới dạng mã hoá AES-GCM, nhưng trang `study/` tự mở khoá bằng mật khẩu ghi sẵn trong `study/study.js` (`OPEN`), nên ai có link cũng xem được.
-
-Nội dung gốc (script soạn bài, ảnh, audio) nằm trong repo private `toeic-materials`. Để thêm hoặc sửa bài, dựng lại thư mục nguồn rồi mã hoá lại bằng đúng mật khẩu cũ:
-
-```bash
-VAULT_PASSWORD=... node tools/vault.mjs <thư-mục-nguồn> study/vault
-```
+Phòng học đã chuyển sang repo riêng [Hailc2407/StudyToeic](https://github.com/Hailc2407/StudyToeic), chạy ở
+https://hailc2407.github.io/StudyToeic/. Trên trang chủ bấm **Ctrl + Shift + L** (trên Mac là phím Control,
+không phải Command) để mở; link cũ https://hailc2407.github.io/study/ tự chuyển sang link mới (giữ cả phần `#…`).
+Hướng dẫn soạn bài, mã hoá vault và skill Claude Code nằm trong repo StudyToeic.
