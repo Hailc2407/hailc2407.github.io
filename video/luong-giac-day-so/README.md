@@ -20,3 +20,31 @@ Các cảnh (giây): mở đầu 0 · radian 5 · giá trị lượng giác 24 �
 cấp số cộng 165 · cấp số nhân 189 · tổng kết 209.
 Mỗi cảnh là một lời gọi `scene(thời lượng, tên, ...)` trong `index.html`; chữ và mốc thời gian
 nằm trong các lời gọi `put(...)`.
+
+## Âm thanh
+
+`am-thanh.py` làm mọi việc về âm thanh. Lời thuyết minh nằm ở một chỗ duy nhất (`LOI_DOC` trong script),
+mỗi câu gắn một mốc giây khớp với hình.
+
+| File | Nội dung |
+|---|---|
+| `luong-giac-day-so-nhac.mp4` | Video có nhạc nền (nhạc tự tổng hợp bằng code, không bản quyền) |
+| `thuyet-minh.md` | Kịch bản: đọc câu nào ở giây thứ mấy, để tự thu giọng |
+| `thuyet-minh.srt` | Phụ đề, kéo vào CapCut hoặc YouTube |
+
+**Thêm giọng đọc AI tiếng Việt** (chạy trên máy có mạng, cần Python, ffmpeg):
+
+```bash
+pip install numpy edge-tts
+python3 am-thanh.py tat-ca
+```
+
+Kết quả: `luong-giac-day-so-am-thanh.mp4` (giọng nữ HoaiMy; thêm `--giong nam` để dùng giọng nam,
+`--toc-do +10%` để đọc nhanh hơn). Nhạc nền tự nhỏ lại mỗi khi có giọng. Câu nào dài hơn chỗ trống sẽ
+được đọc nhanh hơn một chút (tối đa 1,3 lần); script in cảnh báo nếu vẫn không vừa, khi đó rút gọn câu đó trong `LOI_DOC`.
+
+**Dùng giọng tự thu:** thu theo `thuyet-minh.md` thành một file wav dài đúng 220 giây, rồi
+
+```bash
+python3 am-thanh.py ghep --giong-file giong-cua-toi.wav
+```
