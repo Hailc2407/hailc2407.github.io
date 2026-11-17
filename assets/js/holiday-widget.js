@@ -102,8 +102,8 @@
     constructor(canvas) {
       this.canvas = canvas;
       this.ctx = canvas.getContext("2d");
-      this.cols = 46;
-      this.rows = 38;
+      this.cols = 52;
+      this.rows = 48;
       this.points = [];
       this.snow = [];
       this.rotation = 0;
@@ -127,38 +127,38 @@
           return s / 233280;
         };
       };
-      const rand = prng(42);
+      const rand = prng(77);
 
       // 1. Needles / Branch whorls (Conical pine structure)
-      const whorls = 24;
-      const y0 = -1.25;
-      const y1 = 1.65;
+      const whorls = 32;
+      const y0 = -1.35;
+      const y1 = 1.75;
       for (let i = 0; i < whorls; i++) {
         const u = i / (whorls - 1);
         const y = y0 + u * (y1 - y0);
-        // Envelope curve: wider base, gentle flare
-        const R = (1.45 * Math.pow(1 - u, 0.92) + 0.08) * (1 + 0.12 * Math.sin(u * 14));
-        const nb = Math.round(5 + 13 * (1 - u));
+        // Conical envelope with flare
+        const R = (1.52 * Math.pow(1 - u, 0.95) + 0.05) * (1 + 0.14 * Math.sin(u * 16));
+        const nb = Math.round(6 + 16 * (1 - u));
 
         for (let b = 0; b < nb; b++) {
           const a = (2 * Math.PI * (b + 0.5 * rand())) / nb + i * 0.77;
-          const branchLen = R * (0.86 + 0.22 * rand());
-          const steps = 6 + Math.floor((1 - u) * 4);
+          const branchLen = R * (0.88 + 0.24 * rand());
+          const steps = 7 + Math.floor((1 - u) * 6);
 
           for (let s = 1; s <= steps; s++) {
             const t = s / steps;
             const r_curr = branchLen * t;
-            // Drooping branch parabola: y drops slightly towards tips
-            const pt_y = y - 0.22 * Math.pow(t, 2.1) + (rand() - 0.5) * 0.04;
-            const pt_x = r_curr * Math.cos(a) + (rand() - 0.5) * 0.04;
-            const pt_z = r_curr * Math.sin(a) + (rand() - 0.5) * 0.04;
+            // Drooping branch parabola: y drops gently towards tips
+            const pt_y = y - 0.2 * Math.pow(t, 2.0) + (rand() - 0.5) * 0.03;
+            const pt_x = r_curr * Math.cos(a) + (rand() - 0.5) * 0.03;
+            const pt_z = r_curr * Math.sin(a) + (rand() - 0.5) * 0.03;
 
-            // Character based on branch density and t
-            const needleChars = ["*", "&", "%", "X", "W", "v", "x", "#", "~", "^"];
+            // Character based on branch density
+            const needleChars = ["*", "&", "%", "X", "W", "v", "x", "#", "~", "^", "M"];
             const char = needleChars[Math.floor(rand() * needleChars.length)];
 
-            // Color gradient: minty emerald, bright tips, deeper core
-            const greenShades = ["#22c55e", "#10b981", "#34d399", "#4ade80", "#16a34a", "#86efac"];
+            // Color gradient: minty emerald, bright tips, deeper forest pine
+            const greenShades = ["#22c55e", "#10b981", "#34d399", "#4ade80", "#16a34a", "#86efac", "#2ecc71"];
             const color = greenShades[Math.floor(rand() * greenShades.length)];
 
             this.points.push({
@@ -171,7 +171,7 @@
             });
 
             // Fairy light at branch tip
-            if (s === steps && rand() < 0.7) {
+            if (s === steps && rand() < 0.75) {
               this.points.push({
                 x: pt_x * 1.02,
                 y: pt_y,
@@ -187,15 +187,15 @@
       }
 
       // 2. Baubles / Ornaments on tree exterior
-      const baublesCount = 34;
+      const baublesCount = 48;
       for (let k = 0; k < baublesCount; k++) {
         const u = (k + rand()) / baublesCount;
         const y = y0 + 0.12 + u * (y1 - y0 - 0.28);
         const a = k * 2.39996 + rand() * 0.4;
-        const R = (1.45 * Math.pow(1 - u, 0.92) + 0.06);
+        const R = (1.52 * Math.pow(1 - u, 0.95) + 0.04);
         const pt_x = R * Math.cos(a);
         const pt_z = R * Math.sin(a);
-        const pt_y = y - 0.06;
+        const pt_y = y - 0.05;
 
         const isRed = k % 2 === 0;
         this.points.push({
@@ -210,17 +210,17 @@
       }
 
       // 3. Glowing Golden Star at the top
-      const starY = y1 + 0.15;
+      const starY = y1 + 0.18;
       const starPoints = [
-        { x: 0, y: starY + 0.2, z: 0, char: "#", color: "#fef08a" },
-        { x: -0.08, y: starY + 0.12, z: 0, char: "@", color: "#fbbf24" },
-        { x: 0.08, y: starY + 0.12, z: 0, char: "@", color: "#fbbf24" },
-        { x: 0, y: starY + 0.1, z: 0, char: "#", color: "#fff" },
-        { x: -0.15, y: starY + 0.06, z: 0, char: "*", color: "#facc15" },
-        { x: 0.15, y: starY + 0.06, z: 0, char: "*", color: "#facc15" },
+        { x: 0, y: starY + 0.24, z: 0, char: "#", color: "#fef08a" },
+        { x: -0.09, y: starY + 0.15, z: 0, char: "@", color: "#fbbf24" },
+        { x: 0.09, y: starY + 0.15, z: 0, char: "@", color: "#fbbf24" },
+        { x: 0, y: starY + 0.12, z: 0, char: "#", color: "#ffffff" },
+        { x: -0.18, y: starY + 0.08, z: 0, char: "*", color: "#facc15" },
+        { x: 0.18, y: starY + 0.08, z: 0, char: "*", color: "#facc15" },
         { x: 0, y: starY, z: 0, char: "+", color: "#fbbf24" },
-        { x: 0, y: starY + 0.08, z: 0.1, char: "*", color: "#fef08a" },
-        { x: 0, y: starY + 0.08, z: -0.1, char: "*", color: "#fef08a" }
+        { x: 0, y: starY + 0.1, z: 0.12, char: "*", color: "#fef08a" },
+        { x: 0, y: starY + 0.1, z: -0.12, char: "*", color: "#fef08a" }
       ];
       starPoints.forEach(p => {
         p.type = "star";
@@ -228,9 +228,9 @@
       });
 
       // 4. Wooden Trunk at the bottom
-      for (let ty = -1.25; ty >= -1.68; ty -= 0.08) {
-        const trunkR = 0.24;
-        for (let ta = 0; ta < Math.PI * 2; ta += 0.5) {
+      for (let ty = -1.35; ty >= -1.75; ty -= 0.07) {
+        const trunkR = 0.26;
+        for (let ta = 0; ta < Math.PI * 2; ta += 0.45) {
           this.points.push({
             x: trunkR * Math.cos(ta),
             y: ty,
@@ -244,14 +244,14 @@
 
       // 5. Gift box at base
       const giftColors = ["#dc2626", "#fbbf24", "#3b82f6"];
-      for (let gx = -0.4; gx <= -0.1; gx += 0.12) {
-        for (let gy = -1.68; gy <= -1.45; gy += 0.1) {
+      for (let gx = -0.45; gx <= -0.12; gx += 0.11) {
+        for (let gy = -1.75; gy <= -1.48; gy += 0.09) {
           this.points.push({
             x: gx,
             y: gy,
             z: 0.55,
-            char: gx === -0.25 || gy === -1.55 ? "+" : "#",
-            color: gx === -0.25 || gy === -1.55 ? "#fbbf24" : giftColors[0],
+            char: gx === -0.23 || gy === -1.57 ? "+" : "#",
+            color: gx === -0.23 || gy === -1.57 ? "#fbbf24" : giftColors[0],
             type: "gift"
           });
         }
@@ -373,8 +373,8 @@
         const depth = camDist + rotZ;
         if (depth <= 0.4) continue;
 
-        const px = Math.round(cols / 2 + (rotX * 28) / depth);
-        const py = Math.round(rows / 2 - (pt.y * 22) / depth - 1);
+        const px = Math.round(cols / 2 + (rotX * 31) / depth);
+        const py = Math.round(rows / 2 - (pt.y * 23) / depth - 1);
 
         if (px >= 0 && px < cols && py >= 0 && py < rows) {
           // Z-buffer check
@@ -615,9 +615,8 @@
         </div>
       </div>
 
-      <div class="holiday-canvas-container">
-        <canvas class="holiday-canvas" id="holiday-tree-canvas" width="290" height="290"></canvas>
-        <div class="holiday-drag-hint">⇄ Kéo chuột để xoay 3D</div>
+      <div class="holiday-canvas-container" title="Kéo chuột hoặc vuốt để xoay 3D">
+        <canvas class="holiday-canvas" id="holiday-tree-canvas" width="290" height="340"></canvas>
       </div>
 
       <div class="holiday-player-bar">

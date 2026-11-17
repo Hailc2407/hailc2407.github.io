@@ -127,54 +127,51 @@
   color: #ef4444;
 }
 
-/* ---------- Guide Tooltip Beside Close Button ---------- */
+/* ---------- Guide Tooltip Above Close Button ---------- */
 .holiday-guide-tooltip {
   position: absolute;
-  top: -8px;
-  right: calc(100% + 10px);
+  bottom: calc(100% + 12px);
+  right: 0;
   width: 210px;
-  background: #1a2030;
+  background: #141a27;
   color: #eef1f8;
   border: 1px solid #74ecd0;
-  border-radius: 8px;
-  padding: 8px 10px;
+  border-radius: 10px;
+  padding: 9px 12px;
   font-size: 11px;
   line-height: 1.45;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(95, 227, 192, 0.2);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.75), 0 0 16px rgba(95, 227, 192, 0.25);
   pointer-events: auto;
   opacity: 0;
-  transform: translateX(6px);
+  transform: translateY(6px);
   animation: tooltip-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   z-index: 100;
 }
 
 .holiday-widget.pos-bottom-left .holiday-guide-tooltip {
   right: auto;
-  left: calc(100% + 10px);
-  transform: translateX(-6px);
+  left: 0;
 }
 
 .holiday-guide-tooltip::after {
   content: "";
   position: absolute;
-  top: 14px;
-  right: -6px;
-  border-width: 6px 0 6px 6px;
+  bottom: -7px;
+  right: 14px;
+  border-width: 7px 6px 0 6px;
   border-style: solid;
-  border-color: transparent transparent transparent #74ecd0;
+  border-color: #74ecd0 transparent transparent transparent;
 }
 
 .holiday-widget.pos-bottom-left .holiday-guide-tooltip::after {
   right: auto;
-  left: -6px;
-  border-width: 6px 6px 6px 0;
-  border-color: transparent #74ecd0 transparent transparent;
+  left: 14px;
 }
 
 @keyframes tooltip-in {
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
 
@@ -204,8 +201,8 @@
 .holiday-canvas-container {
   position: relative;
   width: 100%;
-  height: 290px;
-  background: #07090e;
+  height: 340px;
+  background: #06080d;
   overflow: hidden;
   cursor: grab;
 }
