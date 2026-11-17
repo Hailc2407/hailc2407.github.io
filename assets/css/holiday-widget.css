@@ -1,0 +1,646 @@
+/* ==========================================================================
+   holiday-widget.css
+   Floating 3D ASCII Christmas Tree, YouTube Music Player & Admin Modal
+   Designed for Le Canh Hai Academic Homepage
+   ========================================================================== */
+
+/* ---------- Floating Widget Container ---------- */
+.holiday-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9990;
+  width: 290px;
+  background: rgba(14, 18, 28, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(95, 227, 192, 0.35);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.7),
+              0 0 20px -4px rgba(95, 227, 192, 0.25);
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  color: var(--text, #eef1f8);
+  overflow: visible;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s ease;
+  user-select: none;
+}
+
+.holiday-widget.pos-bottom-left {
+  right: auto;
+  left: 24px;
+}
+
+.holiday-widget:hover {
+  border-color: rgba(95, 227, 192, 0.6);
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.8),
+              0 0 28px -2px rgba(95, 227, 192, 0.35);
+}
+
+.holiday-widget.is-hidden {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  pointer-events: none;
+}
+
+/* ---------- Header Bar ---------- */
+.holiday-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(26, 32, 48, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-left-radius: 13px;
+  border-top-right-radius: 13px;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.holiday-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #74ecd0;
+}
+
+.holiday-eq-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.holiday-eq-bar {
+  width: 2px;
+  background: #74ecd0;
+  border-radius: 1px;
+  height: 3px;
+  transition: height 0.15s ease;
+}
+
+.holiday-widget.is-playing .holiday-eq-bar:nth-child(1) {
+  animation: eq-bounce 0.8s ease-in-out infinite alternate;
+}
+.holiday-widget.is-playing .holiday-eq-bar:nth-child(2) {
+  animation: eq-bounce 0.5s ease-in-out infinite 0.2s alternate;
+}
+.holiday-widget.is-playing .holiday-eq-bar:nth-child(3) {
+  animation: eq-bounce 0.7s ease-in-out infinite 0.4s alternate;
+}
+
+@keyframes eq-bounce {
+  0% { height: 2px; }
+  100% { height: 11px; }
+}
+
+.holiday-header-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.holiday-btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--muted, #8e97aa);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.holiday-btn-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.holiday-btn-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+}
+
+/* ---------- Guide Tooltip Beside Close Button ---------- */
+.holiday-guide-tooltip {
+  position: absolute;
+  top: -8px;
+  right: calc(100% + 10px);
+  width: 210px;
+  background: #1a2030;
+  color: #eef1f8;
+  border: 1px solid #74ecd0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(95, 227, 192, 0.2);
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateX(6px);
+  animation: tooltip-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  z-index: 100;
+}
+
+.holiday-widget.pos-bottom-left .holiday-guide-tooltip {
+  right: auto;
+  left: calc(100% + 10px);
+  transform: translateX(-6px);
+}
+
+.holiday-guide-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: -6px;
+  border-width: 6px 0 6px 6px;
+  border-style: solid;
+  border-color: transparent transparent transparent #74ecd0;
+}
+
+.holiday-widget.pos-bottom-left .holiday-guide-tooltip::after {
+  right: auto;
+  left: -6px;
+  border-width: 6px 6px 6px 0;
+  border-color: transparent #74ecd0 transparent transparent;
+}
+
+@keyframes tooltip-in {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.holiday-guide-tooltip .tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  color: #74ecd0;
+  margin-bottom: 2px;
+}
+
+.holiday-guide-tooltip .tooltip-close {
+  background: none;
+  border: none;
+  color: #8e97aa;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.holiday-guide-tooltip .tooltip-close:hover {
+  color: #fff;
+}
+
+/* ---------- Canvas Display ---------- */
+.holiday-canvas-container {
+  position: relative;
+  width: 100%;
+  height: 290px;
+  background: #07090e;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.holiday-canvas-container:active {
+  cursor: grabbing;
+}
+
+.holiday-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.holiday-drag-hint {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.3px;
+  pointer-events: none;
+}
+
+/* ---------- Audio Controls Bar ---------- */
+.holiday-player-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(19, 24, 36, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom-left-radius: 13px;
+  border-bottom-right-radius: 13px;
+  font-size: 11px;
+  gap: 8px;
+}
+
+.holiday-play-btn {
+  background: #5fe3c0;
+  color: #0b0e15;
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: bold;
+  flex-shrink: 0;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.holiday-play-btn:hover {
+  background: #74ecd0;
+  transform: scale(1.08);
+}
+
+.holiday-track-info {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+
+.holiday-track-title {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--text-2, #c5ccda);
+  letter-spacing: 0.3px;
+  animation: marquee 14s linear infinite;
+  padding-left: 100%;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+.holiday-volume-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.holiday-vol-icon {
+  background: none;
+  border: none;
+  color: var(--muted, #8e97aa);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px;
+}
+
+.holiday-vol-slider {
+  width: 50px;
+  height: 4px;
+  accent-color: #5fe3c0;
+  cursor: pointer;
+}
+
+/* ---------- Collapsed Floating Launcher Button ---------- */
+.holiday-launcher {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9989;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(14, 18, 28, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(95, 227, 192, 0.4);
+  border-radius: 30px;
+  color: #eef1f8;
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(95, 227, 192, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+  user-select: none;
+}
+
+.holiday-launcher.pos-bottom-left {
+  right: auto;
+  left: 24px;
+}
+
+.holiday-launcher:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: #74ecd0;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 24px rgba(95, 227, 192, 0.35);
+}
+
+.holiday-launcher.is-hidden {
+  opacity: 0;
+  transform: translateY(15px) scale(0.9);
+  pointer-events: none;
+}
+
+/* ---------- Admin Modal Overlay ---------- */
+.holiday-admin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 11, 18, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.holiday-admin-overlay.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.holiday-admin-card {
+  width: 100%;
+  max-width: 520px;
+  background: #131824;
+  border: 1px solid rgba(95, 227, 192, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8),
+              0 0 35px -5px rgba(95, 227, 192, 0.2);
+  font-family: var(--font, "Inter", sans-serif);
+  color: #eef1f8;
+  overflow: hidden;
+  transform: scale(0.96) translateY(10px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.holiday-admin-overlay.is-active .holiday-admin-card {
+  transform: scale(1) translateY(0);
+}
+
+.holiday-admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #1a2030;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.holiday-admin-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #74ecd0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono, "JetBrains Mono", monospace);
+}
+
+.holiday-admin-body {
+  padding: 20px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Modal Nav Tabs */
+.holiday-admin-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 18px;
+}
+
+.holiday-admin-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8e97aa;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.holiday-admin-tab:hover {
+  color: #c5ccda;
+}
+
+.holiday-admin-tab.is-active {
+  color: #5fe3c0;
+  border-color: #5fe3c0;
+  font-weight: 600;
+}
+
+/* Form controls */
+.holiday-form-group {
+  margin-bottom: 16px;
+}
+
+.holiday-form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c5ccda;
+  margin-bottom: 6px;
+}
+
+.holiday-form-group .form-hint {
+  font-size: 11px;
+  color: #8e97aa;
+  margin-top: 4px;
+}
+
+.holiday-form-control {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  background: #0b0e15;
+  border: 1px solid #283044;
+  border-radius: 8px;
+  color: #eef1f8;
+  font-family: var(--mono, "JetBrains Mono", monospace);
+  font-size: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.holiday-form-control:focus {
+  outline: none;
+  border-color: #5fe3c0;
+  box-shadow: 0 0 0 3px rgba(95, 227, 192, 0.15);
+}
+
+.holiday-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.holiday-switch-label {
+  font-size: 13px;
+  color: #eef1f8;
+}
+
+.holiday-switch-sub {
+  font-size: 11px;
+  color: #8e97aa;
+}
+
+.holiday-switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+}
+
+.holiday-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.holiday-slider-toggle {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #283044;
+  border-radius: 24px;
+  transition: 0.2s;
+}
+
+.holiday-slider-toggle:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.holiday-switch input:checked + .holiday-slider-toggle {
+  background-color: #5fe3c0;
+}
+
+.holiday-switch input:checked + .holiday-slider-toggle:before {
+  transform: translateX(18px);
+}
+
+/* Action Buttons */
+.holiday-admin-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.holiday-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+  border: none;
+}
+
+.holiday-btn-primary {
+  background: #5fe3c0;
+  color: #0b0e15;
+}
+
+.holiday-btn-primary:hover {
+  background: #74ecd0;
+  transform: translateY(-1px);
+}
+
+.holiday-btn-secondary {
+  background: #1a2030;
+  color: #c5ccda;
+  border: 1px solid #283044;
+}
+
+.holiday-btn-secondary:hover {
+  background: #283044;
+  color: #fff;
+}
+
+/* Encrypted Code Box */
+.holiday-code-block {
+  background: #090c12;
+  border: 1px solid #283044;
+  border-radius: 8px;
+  padding: 10px;
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  color: #74ecd0;
+  word-break: break-all;
+  max-height: 120px;
+  overflow-y: auto;
+  user-select: all;
+  margin-top: 8px;
+}
+
+/* Hidden YouTube Iframe Container */
+#holiday-yt-hidden-frame {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  left: -9999px;
+  top: -9999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .holiday-widget {
+    bottom: 16px;
+    right: 16px;
+    width: calc(100vw - 32px);
+    max-width: 290px;
+  }
+  .holiday-widget.pos-bottom-left {
+    left: 16px;
+  }
+  .holiday-launcher {
+    bottom: 16px;
+    right: 16px;
+  }
+  .holiday-launcher.pos-bottom-left {
+    left: 16px;
+  }
+  .holiday-guide-tooltip {
+    right: 0;
+    top: calc(100% + 8px);
+    width: 200px;
+  }
+  .holiday-guide-tooltip::after {
+    top: -6px;
+    right: 16px;
+    border-width: 0 6px 6px 6px;
+    border-color: transparent transparent #74ecd0 transparent;
+  }
+}
