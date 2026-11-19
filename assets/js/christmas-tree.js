@@ -6,7 +6,6 @@
    * Gọi bằng JS:  ChristmasTree.open()  .close()  .toggle()  .replay()
    * Phím tắt khi popup đang mở:  Esc đóng · Space tạm dừng · R chạy lại
    * Phím tắt quản lý bí mật:    Ctrl + Shift + H (hoặc Ctrl + Shift + M)
-   * Mật khẩu mặc định:          hailc@xmas2026
    */
   'use strict';
   if (window.ChristmasTree) return;
@@ -14,8 +13,8 @@
   // ── 1. CRYPTO & CONFIGURATION (Git-Safe: Encrypted for Public Repo) ──
   const APP_CIPHER_KEY = "HailcMathOptimization2026";
   const DEFAULT_SALT = "hailc2407_math_xmas_2026";
-  // Salted SHA-256 for default password 'hailc@xmas2026'
-  const DEFAULT_ADMIN_HASH = "bcdfbe35bb6dc64ba928a97bb2eb2b8e30b9f98d1ebaec812dad21a2fca2ddda";
+  // Salted SHA-256 for password
+  const DEFAULT_ADMIN_HASH = "7ebac94cd0f1fc4529ff0c238341aea1140ed207a8550c9909b986f1119d1462";
 
   function encryptPayload(dataObj, key = APP_CIPHER_KEY) {
     const jsonStr = JSON.stringify(dataObj);
@@ -51,7 +50,7 @@
   }
 
   // Default encrypted payload for git (no raw URLs in public repo)
-  const DEFAULT_GIT_PAYLOAD = "M1IyMFJscmGFn77tn5Le1j00N05gJiXE/8P3gMTnxwIxezcBITyjsYeKntHr4VVcdhp7cT2EgJmw3pOEfOb5xtm0jYcPZmCn1Mmq3AEBLzk/OjLb9/ej28Hv8AYJPXMbJjPFwMD23NLs2gobMQBbCSPOs7i8/fyquhlLfWdsUU6NgYfwip/L5BgWJTcFCXh0yavjxdKx319DfTg/Cnt08rWnmdy16lRTI29CUGQribKzydvjgVVQKxZdHDNw1oKt1Yrp+VJENi0iWWd6hr6cqtTaoE1fID5UVX4h0MKo0ZC3zQslMDtqRUMj9dnu9t4=";
+  const DEFAULT_GIT_PAYLOAD = "M1IyMFJscmGFn77tn5Le1j00N05gJiXE/8P3gMTnxwIxezcBITyjsYeKntHr4VVcdhp7cT2EgJmw3pOEfOb5xtm0jYcPZmCn1Mmq3AEBLzk/OjLb9/ej28Hv8AYJPXMbJjPFwMD23NLs2gobMQBbCSPOs7i8/fyquhlLfWdsUU6NgYfwip+e4h4RJGsCX34mmf7mkNLmjF8XI2llDyou8+T0ytvsvlZXcTNAW2x42e/knY7jgF1SdhUAFjR31dX/jdy8qQAXNi0iWWd6hr6cqtTaoE1fID5UVX4h0MKo0ZC3zQslMDtqRUMj9dnu9t4=";
 
   function loadActiveConfig() {
     const basePayload = window.HOLIDAY_CONFIG_PAYLOAD || DEFAULT_GIT_PAYLOAD;
@@ -70,6 +69,9 @@
       if (local) {
         const parsed = JSON.parse(local);
         if (parsed.youtubeId && parsed.youtubeId !== "gl1aHhXnN1k") {
+          if (parsed.adminHash && parsed.adminHash !== DEFAULT_ADMIN_HASH) {
+            delete parsed.adminHash;
+          }
           config = Object.assign(config, parsed);
         }
       }
