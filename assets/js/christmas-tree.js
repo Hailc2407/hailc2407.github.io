@@ -668,21 +668,6 @@
     .ctrl button:hover { background: rgba(255, 255, 255, .16); }
     .ctrl button.music.active { background: rgba(95, 227, 192, 0.25); color: #5fe3c0; }
 
-    /* Guide Tooltip beside close button */
-    .guide-tooltip {
-      position: absolute; top: 40px; right: 0; width: 220px;
-      background: #141b2a; color: #e2e8f0; border: 1px solid #5fe3c0; border-radius: 8px;
-      padding: 8px 10px; font-size: 11px; line-height: 1.4;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, .7), 0 0 12px rgba(95, 227, 192, .25);
-      pointer-events: auto; opacity: 1; transition: opacity .4s ease, transform .4s ease;
-      z-index: 20;
-    }
-    .guide-tooltip::before {
-      content: ""; position: absolute; top: -6px; right: 10px;
-      border-width: 0 6px 6px 6px; border-style: solid; border-color: transparent transparent #5fe3c0 transparent;
-    }
-    .guide-tooltip.hide { opacity: 0; transform: translateY(-4px); pointer-events: none; }
-
     .hud { position: absolute; left: 14px; bottom: 10px; font-size: 10px; line-height: 1.45; white-space: pre; pointer-events: none;
       color: rgba(150, 160, 186, .85); text-shadow: 0 0 8px #060911, 0 0 2px #060911; }
     .sig { cursor: pointer; pointer-events: auto; }
@@ -912,10 +897,6 @@
             <div class="time"></div>
             <div class="hud"><div class="sig" title="Click 5 lần để mở Quản lý"></div><div class="rot"></div><div class="count"></div></div>
             <div class="ctrl">
-              <div class="guide-tooltip" id="guide-tip">
-                <div style="font-weight:600; color:#5fe3c0; margin-bottom:2px;">💡 Hướng dẫn</div>
-                <div>Bấm <b>✕</b> để tắt cây thông và tắt nhạc bất kỳ lúc nào!</div>
-              </div>
               <button type="button" class="music" aria-label="Bật/Tắt nhạc" title="Bật/Tắt nhạc">🎵</button>
               <button type="button" class="replay" aria-label="Chạy lại" title="Chạy lại (R)">↻</button>
               <button type="button" class="close" aria-label="Đóng" title="Đóng (Esc)">✕</button>
@@ -928,7 +909,7 @@
     ui = {
       root, launch: $('.launch'), overlay: $('.overlay'), card: $('.card'), scene: $('.scene'), canvas: $('canvas'),
       time: $('.time'), sig: $('.sig'), rot: $('.rot'), count: $('.count'), replay: $('.replay'), close: $('.close'),
-      musicBtn: $('.music'), guideTip: $('#guide-tip')
+      musicBtn: $('.music')
     };
 
     ui.sig.textContent = CONFIG.signature || OPT.signature;
@@ -955,19 +936,6 @@
     ui.overlay.addEventListener('wheel', hold, { passive: false });
     ui.overlay.addEventListener('touchmove', hold, { passive: false });
     new ResizeObserver(() => { if (isOpen && relayout()) draw(); }).observe(ui.scene);
-
-    // Guide Tooltip auto-dismiss
-    if (sessionStorage.getItem("xmas_guide_dismissed")) {
-      ui.guideTip.style.display = "none";
-    } else {
-      const hideGuide = () => {
-        ui.guideTip.classList.add("hide");
-        setTimeout(() => { ui.guideTip.style.display = "none"; }, 400);
-        sessionStorage.setItem("xmas_guide_dismissed", "1");
-      };
-      ui.guideTip.addEventListener('click', hideGuide);
-      setTimeout(hideGuide, 7500);
-    }
   }
 
   const adminHandlers = buildAdminModal();
