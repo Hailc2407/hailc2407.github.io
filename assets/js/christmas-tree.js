@@ -51,14 +51,14 @@
   }
 
   // Default encrypted payload for git (no raw URLs in public repo)
-  const DEFAULT_GIT_PAYLOAD = "M1IyMFJscmGFn77tn5Cl4h1kOmRSDyj7n4r5jpCsxwcgNWgBKjzJvbqq18H3/l1cIjt1ZHTJtoKw0d6EzhwWNloJLyfPjKfpjYa5kVdUcWkxICSKrqGt3tnh+UhSZCVTJySchc61wdLm1R8GKxwcETnOj6uw1IzstBcKO353WmO/goq31J+Tp01ed34WHml4kLjEloig1xIIZ2MmCCk64PK1xM3k+w4ML3QeSX4t16Olx9Otyw0FJwMbAiIzgYqv1tTo+RQfNHVyTWY7z/Kur9XH7D8cOzcfAz0xhpH76J+zilYYKmBvVSolp4rh5pvXs1cEKGlOBmUoh7f55cOExFhdLk1RQ25/gtv6/cHT5P8RcjZtVm0ogLGsr4G/vagHKTVRXEN9hY24s9jPzP0OHzA+BycrlYuypczs6fAYBB8cU2B3kPHn/NfSyOgMFhQ7BjI/yK2wsMKc1KBSSG9dZitg";
+  const DEFAULT_GIT_PAYLOAD = "M1IyMFJscmGFn77tn5Le1j00N05gJiXE/8P3gMTnxwIxezcBITyjsYeKntHr4VVcdhp7cT2EgJmw3pOEfOb5xtm0jYcPZmCn1Mmq3AEBLzk/OjLb9/ej28Hv8AYJPXMbJjPFwMD23NLs2gobMQBbCSPOs7i8/fyquhlLfWdsUU6NgYfwip/L5BgWJTcFCXh0yavjxdKx319DfTg/Cnt08rWnmdy16lRTI29CUGQribKzydvjgVVQKxZdHDNw1oKt1Yrp+VJENi0iWWd6hr6cqtTaoE1fID5UVX4h0MKo0ZC3zQslMDtqRUMj9dnu9t4=";
 
   function loadActiveConfig() {
     const basePayload = window.HOLIDAY_CONFIG_PAYLOAD || DEFAULT_GIT_PAYLOAD;
     let config = decryptPayload(basePayload) || {
-      youtubeId: "gl1aHhXnN1k",
-      title: "Christmas Lofi Chill Beats",
-      volume: 35,
+      youtubeId: "YSLalbZqcqQ",
+      title: "1 HOUR christmas music! 🎄🎀✨",
+      volume: 40,
       autoplay: true,
       signature: "HaiLC",
       adminHash: DEFAULT_ADMIN_HASH,
@@ -68,7 +68,10 @@
     try {
       const local = localStorage.getItem("christmas_tree_custom_cfg");
       if (local) {
-        config = Object.assign(config, JSON.parse(local));
+        const parsed = JSON.parse(local);
+        if (parsed.youtubeId && parsed.youtubeId !== "gl1aHhXnN1k") {
+          config = Object.assign(config, parsed);
+        }
       }
     } catch (e) {}
     return config;
